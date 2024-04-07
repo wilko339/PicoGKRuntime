@@ -296,7 +296,7 @@ public:
         BoolIntersect(oVox);
     }
 
-    Mesh::Ptr roAsMesh(float fVoxelSizeMM) const
+    Mesh::Ptr roAsMesh(float fVoxelSizeMM, bool bTriangulateMeshes, float fMeshAdaptivity) const
     {
         Mesh::Ptr roMesh = std::make_shared<Mesh>();
         
@@ -309,16 +309,20 @@ public:
                                                          oTriangles,
                                                          oQuads,
                                                          0.0f,
-                                                         0.0,
-                                                         false);
+                                                         fMeshAdaptivity,
+                                                         true);
 
-        for (const openvdb::Vec4I oQuad : oQuads)
+        if (bTriangulateMeshes)
         {
-            openvdb::Vec3I o1(oQuad[0], oQuad[1], oQuad[2]);
-            oTriangles.push_back(o1);
+            for (const openvdb::Vec4I oQuad : oQuads)
+            {
+                openvdb::Vec3I o1(oQuad[0], oQuad[1], oQuad[2]);
+                oTriangles.push_back(o1);
 
-            openvdb::Vec3I o2(oQuad[2], oQuad[3], oQuad[0]);
-            oTriangles.push_back(o2);
+                openvdb::Vec3I o2(oQuad[2], oQuad[3], oQuad[0]);
+                oTriangles.push_back(o2);
+            }
+            oQuads.clear();
         }
 	    
         for (const openvdb::Vec3s& v : oPoints)
@@ -333,6 +337,15 @@ public:
             roMesh->nAddTriangle(   PicoGK::Triangle(   oTri[2],
                                                         oTri[1],
                                                         oTri[0]));
+        }
+
+        for (const openvdb::Vec4I oQuad : oQuads)
+        {
+            roMesh->nAddQuad(PicoGK::Quad(
+                oQuad[3],
+                oQuad[2],
+                oQuad[1],
+                oQuad[0]));
         }
 
         return roMesh;
@@ -627,6 +640,7 @@ protected:
     {
         std::vector< openvdb::Vec3s >   oVertices;
         std::vector< openvdb::Vec3I >   oTriangles;
+        std::vector< openvdb::Vec4I >   oQuads;
         
         for (int32_t n=0; n<oMesh.nVertexCount(); n++)
         {
@@ -637,22 +651,80 @@ protected:
                                                 v.Z));
         }
         
-        for (int32_t n=0; n<oMesh.nTriangleCount(); n++)
+        // Purely quad mesh
+        if (oMesh.nTriangleCount() == 0 && oMesh.nQuadCount() > 0)
         {
-            Triangle t;
-            oMesh.GetTriangle(n, &t);
-            oTriangles.push_back(openvdb::Vec3I(    (unsigned int) t.A,
-                                                    (unsigned int) t.B,
-                                                    (unsigned int) t.C));
+            for (int32_t n = 0; n < oMesh.nQuadCount(); n++)
+            {
+                Quad q;
+                oMesh.GetQuad(n, &q);
+                oQuads.push_back(openvdb::Vec4I(    (unsigned int)q.A,
+                                                    (unsigned int)q.B,
+                                                    (unsigned int)q.C,
+                                                    (unsigned int)q.D));
+            }
+
+            openvdb::math::Transform::Ptr roTransform
+                = openvdb::math::Transform::createLinearTransform(fVoxelSizeMM);
+
+            return openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(*roTransform,
+                oVertices,
+                oQuads,
+                fBackground);
         }
 
-        openvdb::math::Transform::Ptr roTransform
-            = openvdb::math::Transform::createLinearTransform(fVoxelSizeMM);
+        // Mixed quad and tri mesh (happens with Rhino)
+        if (oMesh.nTriangleCount() > 0 && oMesh.nQuadCount() > 0)
+        {
+            for (int32_t n = 0; n < oMesh.nQuadCount(); n++)
+            {
+                Quad q;
+                oMesh.GetQuad(n, &q);
+                oQuads.push_back(openvdb::Vec4I((unsigned int)q.A,
+                    (unsigned int)q.B,
+                    (unsigned int)q.C,
+                    (unsigned int)q.D));
+            }
 
-        return openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(  *roTransform,
-                                                                    oVertices,
-                                                                    oTriangles,
-                                                                    fBackground);
+            for (int32_t n = 0; n < oMesh.nTriangleCount(); n++)
+            {
+                Triangle t;
+                oMesh.GetTriangle(n, &t);
+                oTriangles.push_back(openvdb::Vec3I((unsigned int)t.A,
+                    (unsigned int)t.B,
+                    (unsigned int)t.C));
+            }
+
+            openvdb::math::Transform::Ptr roTransform
+                = openvdb::math::Transform::createLinearTransform(fVoxelSizeMM);
+
+            return openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(*roTransform,
+                oVertices,
+                oTriangles,
+                oQuads,
+                fBackground);
+        }
+
+        // The only remaining case should be a purely triangular mesh
+        else
+        {
+            for (int32_t n=0; n<oMesh.nTriangleCount(); n++)
+            {
+                Triangle t;
+                oMesh.GetTriangle(n, &t);
+                oTriangles.push_back(openvdb::Vec3I(    (unsigned int) t.A,
+                                                        (unsigned int) t.B,
+                                                        (unsigned int) t.C));
+            }
+
+            openvdb::math::Transform::Ptr roTransform
+                = openvdb::math::Transform::createLinearTransform(fVoxelSizeMM);
+
+            return openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(  *roTransform,
+                                                                        oVertices,
+                                                                        oTriangles,
+                                                                        fBackground);
+        }
     }
     
     template <class TAccessor>
@@ -700,7 +772,6 @@ protected:
         
         return false;
     }
-    
 };
 
 } // PicoGK namespace

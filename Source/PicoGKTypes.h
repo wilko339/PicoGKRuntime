@@ -70,6 +70,52 @@ struct ColorFloat
     float A;
 };
 
+struct Quad
+{
+    int32_t A;
+    int32_t B;
+    int32_t C;
+    int32_t D;
+
+public:
+    Quad()
+    {
+#ifdef _DEBUG
+        A = std::numeric_limits<int32_t>::min();
+        B = std::numeric_limits<int32_t>::min();
+        C = std::numeric_limits<int32_t>::min();
+        D = std::numeric_limits<int32_t>::min();
+#endif
+    }
+
+    Quad(int32_t _a,
+        int32_t _b,
+        int32_t _c,
+        int32_t _d)
+    {
+        A = _a;
+        B = _b;
+        C = _c;
+        D = _d;
+    }
+
+    Quad(const Quad& oSrc)
+    {
+        A = oSrc.A;
+        B = oSrc.B;
+        C = oSrc.C;
+        D = oSrc.D;
+    }
+
+    bool operator==(const Quad& abcd) const
+    {
+        return ((abcd.A == A) &&
+            (abcd.B == B) &&
+            (abcd.C == C) &&
+            (abcd.D == D));
+    }
+};
+
 struct Coord
 {
 public:

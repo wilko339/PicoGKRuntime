@@ -51,9 +51,9 @@ void SafeCopyInfoString(const std::string s, char psz[PKINFOSTRINGLEN])
     psz[PKINFOSTRINGLEN-1] = 0;
 }
 
-PICOGK_API void Library_Init(float fVoxelSizeMM)
+PICOGK_API void Library_Init(float fVoxelSizeMM, bool bTriangulateMeshes, float fMeshAdaptivity)
 {
-    Library::oLib().InitLibrary(fVoxelSizeMM);
+    Library::oLib().InitLibrary(fVoxelSizeMM, bTriangulateMeshes, fMeshAdaptivity);
 }
 
 PICOGK_API void Library_GetName(char psz[PKINFOSTRINGLEN])
@@ -132,6 +132,15 @@ PICOGK_API int32_t Mesh_nAddTriangle(   PKMESH hThis,
     return (*proThis)->nAddTriangle(*psTri);
 }
 
+PICOGK_API int32_t Mesh_nAddQuad(       PKMESH hThis,
+                                        const Quad* psQuad)
+{
+    Mesh::Ptr* proThis = (Mesh::Ptr*)hThis;
+    assert(Library::oLib().bMeshIsValid(proThis));
+
+    return (*proThis)->nAddQuad(*psQuad);
+}
+
 PICOGK_API void Mesh_GetTriangle(   PKMESH hThis,
                                     int32_t nTriangle,
                                     Triangle* psTri)
@@ -141,6 +150,16 @@ PICOGK_API void Mesh_GetTriangle(   PKMESH hThis,
     
     return (*proThis)->GetTriangle( nTriangle,
                                     psTri);
+}
+
+PICOGK_API void Mesh_GetQuad(       PKMESH hThis,
+                                    int32_t nQuad,
+                                    Quad* psQuad)
+{
+    Mesh::Ptr* proThis = (Mesh::Ptr*)hThis;
+    assert(Library::oLib().bMeshIsValid(proThis));
+
+    return (*proThis)->GetQuad(nQuad, psQuad);
 }
 
 PICOGK_API void Mesh_GetTriangleV(  PKMESH      hThis,
@@ -158,6 +177,23 @@ PICOGK_API void Mesh_GetTriangleV(  PKMESH      hThis,
                                 pvecC);
 }
 
+PICOGK_API void Mesh_GetQuadV(PKMESH hTHis,
+    int32_t nQuad,
+    PKVector3* pvecA,
+    PKVector3* pvecB,
+    PKVector3* pvecC,
+    PKVector3* pvecD)
+{
+    Mesh::Ptr* proThis = (Mesh::Ptr*)hTHis;
+    assert(Library::oLib().bMeshIsValid(proThis));
+
+    (*proThis)->GetQuad(nQuad,
+        pvecA,
+        pvecB,
+        pvecC,
+        pvecD);
+}
+
 PICOGK_API void Mesh_GetBoundingBox(    PKMESH hThis,
                                         BBox3* poBox)
 {
@@ -173,6 +209,14 @@ PICOGK_API int32_t Mesh_nTriangleCount(PKMESH hThis)
     assert(Library::oLib().bMeshIsValid(proThis));
     
     return (*proThis)->nTriangleCount();
+}
+
+PICOGK_API int32_t Mesh_nQuadCount(PKMESH hThis)
+{
+    Mesh::Ptr* proThis = (Mesh::Ptr*)hThis;
+    assert(Library::oLib().bMeshIsValid(proThis));
+
+    return (*proThis)->nQuadCount();
 }
 
 PICOGK_API PKLATTICE Lattice_hCreate()

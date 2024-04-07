@@ -59,10 +59,12 @@ public:
         return m_oLib;
     }
     
-    void InitLibrary(float fVoxelSizeMM)
+    void InitLibrary(float fVoxelSizeMM, bool bTriangulateMeshes, float fMeshAdaptivity)
     {
-        assert(m_fVoxelSizeMM == 0.0f); // set only once
+        // assert(m_fVoxelSizeMM == 0.0f); // set only once
         m_fVoxelSizeMM = fVoxelSizeMM;
+        m_bTriangulateMeshes = bTriangulateMeshes;
+        m_fMeshAdaptivity = fMeshAdaptivity;
     }
     
     inline float fVoxelSizeMM() const
@@ -74,6 +76,16 @@ public:
         }
         
         return m_fVoxelSizeMM;
+    }
+
+    inline float fMeshAdaptivity() const
+    {
+        return m_fMeshAdaptivity;
+    }
+    
+    inline bool bTriangulateMeshes() const
+    {
+        return m_bTriangulateMeshes;
     }
     
 public:
@@ -115,7 +127,7 @@ public: // Mesh Functions
     
     Mesh::Ptr* proMeshCreateFromVoxels(const Voxels& oVoxels)
     {
-        Mesh::Ptr   roMesh  = oVoxels.roAsMesh(fVoxelSizeMM());
+        Mesh::Ptr   roMesh  = oVoxels.roAsMesh(fVoxelSizeMM(), bTriangulateMeshes(), fMeshAdaptivity());
         Mesh::Ptr*  proMesh = new Mesh::Ptr(roMesh);
         m_oMeshes[proMesh]  = proMesh;
         return proMesh;
@@ -374,6 +386,8 @@ private:
     
 protected:
     float                           m_fVoxelSizeMM  = 0.0f;
+    float                           m_fMeshAdaptivity = 0.0f;
+    bool                            m_bTriangulateMeshes = true;
     
     std::map<const Mesh::Ptr*,      Mesh::Ptr*>     m_oMeshes;
     std::map<const Lattice::Ptr*,   Lattice::Ptr*>  m_oLattices;

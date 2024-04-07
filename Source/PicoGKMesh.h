@@ -63,6 +63,18 @@ public:
         int32_t c = nAddVertex(vecC);
         return nAddTriangle(Triangle(a,b,c));
     }
+
+    inline int32_t  nAddQuad(   const Vector3& vecA,
+                                const Vector3& vecB,
+                                const Vector3& vecC,
+                                const Vector3& vecD)
+    {
+        int32_t a = nAddVertex(vecA);
+        int32_t b = nAddVertex(vecB);
+        int32_t c = nAddVertex(vecC);
+        int32_t d = nAddVertex(vecD);
+        return nAddQuad(Quad(a, b, c, d));
+    }
     
     inline int32_t nAddVertex(const Vector3& vecVertex)
     {
@@ -79,10 +91,27 @@ public:
         m_oTriangles.push_back(sTri);
         return nTriangleCount() - 1;
     }
+
+    inline int32_t nAddQuad(const Quad& sQuad)
+    {
+        assert(sQuad.A < nVertexCount());
+        assert(sQuad.B < nVertexCount());
+        assert(sQuad.C < nVertexCount());
+        assert(sQuad.D < nVertexCount());
+        m_oQuads.push_back(sQuad);
+        return nQuadCount() - 1;
+    }
     
     inline int32_t nTriangleCount() const
     {
         size_t nSize = m_oTriangles.size();
+        assert(nSize < std::numeric_limits<int32_t>::max());
+        return (int32_t) nSize;
+    }
+
+    inline int32_t nQuadCount() const
+    {
+        size_t nSize = m_oQuads.size();
         assert(nSize < std::numeric_limits<int32_t>::max());
         return (int32_t) nSize;
     }
@@ -107,6 +136,12 @@ public:
         assert(nTriangle < nTriangleCount());
         *psTriangle = m_oTriangles.at(nTriangle);
     }
+
+    inline void GetQuad(int32_t nQuad, Quad* psQuad) const
+    {
+        assert(nQuad < nQuadCount());
+        *psQuad = m_oQuads.at(nQuad);
+    }
     
     inline void GetTriangle(    int32_t  nTriangle,
                                 Vector3* pvecA,
@@ -119,6 +154,21 @@ public:
         *pvecA = m_oVertices.at(sTri.A);
         *pvecB = m_oVertices.at(sTri.B);
         *pvecC = m_oVertices.at(sTri.C);
+    }
+
+    inline void GetQuad(int32_t nQuad,
+        Vector3* pvecA,
+        Vector3* pvecB,
+        Vector3* pvecC,
+        Vector3* pvecD)
+    {
+        assert(nQuad < nQuadCount());
+
+        Quad sQuad = m_oQuads.at(nQuad);
+        *pvecA = m_oVertices.at(sQuad.A);
+        *pvecB = m_oVertices.at(sQuad.B);
+        *pvecC = m_oVertices.at(sQuad.C);
+        *pvecD = m_oVertices.at(sQuad.D);
     }
     
     inline void GetBoundingBox(BBox3* poBBox)
@@ -154,11 +204,17 @@ public:
     {
         return (void*) m_oTriangles.data();
     }
+
+    void* pQuadData() const
+    {
+        return (void*) m_oQuads.data();
+    }
     
 protected:
     BBox3                  m_oBBox;
     std::vector<Vector3>   m_oVertices;
     std::vector<Triangle>  m_oTriangles;
+    std::vector<Quad>      m_oQuads;
     
     bool bIsPointInTriangle(    const Vector3& vecSurfacePoint,
                                 const Vector3& vecVertex1,

@@ -11,3 +11,5 @@ if not exist vcpkg\ (
 .\vcpkg\vcpkg install zlib:x64-windows
 .\vcpkg\vcpkg install blosc:x64-windows
 .\vcpkg\vcpkg install tbb:x64-windows
+
+pause

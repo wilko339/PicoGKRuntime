@@ -64,7 +64,7 @@
 
 #define PKINFOSTRINGLEN 255
 
-PICOGK_API void         Library_Init(               float fVoxelSizeMM);
+PICOGK_API void         Library_Init(               float fVoxelSizeMM, bool bTriangulateMeshes, float fMeshAdaptivity);
 
 PICOGK_API void         Library_GetName(            char psz[PKINFOSTRINGLEN]);
 
@@ -113,6 +113,13 @@ PICOGK_API void         Mesh_GetTriangleV(          PKMESH                  hThi
                                                     PKVector3*              pvecA,
                                                     PKVector3*              pvecB,
                                                     PKVector3*              pvecC);
+
+PICOGK_API void         Mesh_GetQuadV(              PKMESH                  hTHis,
+                                                    int32_t                 nQuad,
+                                                    PKVector3*              pvecA,
+                                                    PKVector3*              pvecB,
+                                                    PKVector3*              pvecC,
+                                                    PKVector3*              pvecD);
 
 PICOGK_API void         Mesh_GetBoundingBox(        PKMESH                  hThis,
                                                     PKBBox3*                poBox);
