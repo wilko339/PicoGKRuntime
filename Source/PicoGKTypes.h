@@ -216,6 +216,18 @@ struct Vector3
                         Z * sOp.X - X * sOp.Z,
                         X * sOp.Y - Y * sOp.X);
     }
+
+    inline bool isEqualTol(const Vector3& sOp, float tolerance) const
+    {
+        return ((X > sOp.X - tolerance) && (X < sOp.X + tolerance)) &&
+            ((Y > sOp.Y - tolerance) && (Y < sOp.Y + tolerance)) &&
+            ((Z > sOp.Z - tolerance) && (Z < sOp.Z + tolerance));
+    }
+
+    inline bool operator==(const Vector3& sOp) const
+    {
+        return (X == sOp.X) && (Y == sOp.Y) && (Z == sOp.Z);
+    }
     
     inline Vector3 operator-(const Vector3& sOp) const
     {
