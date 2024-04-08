@@ -206,6 +206,22 @@ public:
             
             oMeshInVoxelCoord.nAddTriangle(vecA, vecB, vecC);
         }
+
+        for (int32_t n = 0; n < oMesh.nQuadCount(); n++)
+        {
+            Vector3 vecA(0, 0, 0);
+            Vector3 vecB(0, 0, 0);
+            Vector3 vecC(0, 0, 0);
+            Vector3 vecD(0, 0, 0);
+            oMesh.GetQuad(n, &vecA, &vecB, &vecC, &vecD);
+
+            vecA = oVoxelSize.vecToVoxels(vecA);
+            vecB = oVoxelSize.vecToVoxels(vecB);
+            vecC = oVoxelSize.vecToVoxels(vecC);
+            vecD = oVoxelSize.vecToVoxels(vecD);
+
+            oMeshInVoxelCoord.nAddQuad(vecA, vecB, vecC, vecD);
+        }
         
         FloatGrid::Ptr roVoxelized = roFloatGridFromMesh(   oMeshInVoxelCoord,
                                                             1.0f,
