@@ -1,3 +1,6 @@
+# Forked runtime for PicoGH
+This has been modified for use in PicoGH, a Grasshopper wrapper for PicoGK. 
+
 # Welcome to PicoGK Runtime
 
 PicoGK Runtime is the C++ backbone to [PicoGK](https://picogk.org) a compact, robust geometry kernel for [Computational Engineering](https://leap71.com/computationalengineering/). 
