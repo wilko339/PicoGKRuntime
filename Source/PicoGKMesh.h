@@ -78,14 +78,6 @@ public:
     
     inline int32_t nAddVertex(const Vector3& vecVertex)
     {
-        // Perform a simple equality check to see if the vector is already in the mesh.
-        for (int i = 0; i < m_oVertices.size(); i++)
-        {
-            if (vecVertex.isEqualTol(m_oVertices[i], 0.00001))
-            {
-                return i;
-            }
-        }
         m_oBBox.Include(vecVertex);
         m_oVertices.push_back(vecVertex);
         return nVertexCount() - 1;
