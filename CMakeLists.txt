@@ -57,10 +57,10 @@ set(PICOGK_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} )
 
 # Define the library name
 if( WIN32 )
-	set(LIB_NAME "picogk.${LIB_VERSION_MAJOR}.${LIB_VERSION_MINOR}")
+	set(LIB_NAME "picogkgh.${LIB_VERSION_MAJOR}.${LIB_VERSION_MINOR}")
 else()
 	# unix-like systems automatically append version number
-	set(LIB_NAME "picogk")
+	set(LIB_NAME "picogkgh")
 endif()
 
 # Option to control submodule update and initialization
@@ -164,7 +164,7 @@ else ()
 )
 endif()
 
-target_link_libraries(${LIB_NAME} openvdb_static glfw )
+target_link_libraries(${LIB_NAME} openvdb_static glfw)
 
 set_target_properties(${LIB_NAME} PROPERTIES PREFIX "")
 
