@@ -12,4 +12,6 @@ if not exist vcpkg\ (
 .\vcpkg\vcpkg install blosc:x64-windows
 .\vcpkg\vcpkg install tbb:x64-windows
 
+.\vcpkg\vcpkg install jemalloc:x64-windows
+
 pause

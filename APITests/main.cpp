@@ -184,7 +184,7 @@ int main(int argc, const char * argv[])
 {
     char pszInfo[PKINFOSTRINGLEN];
     
-    Library_Init(1.0f);
+    Library_Init(1.0f, false, 2);
     
     Library_GetName(pszInfo);
     std::cout << pszInfo << " ";
@@ -266,22 +266,6 @@ int main(int argc, const char * argv[])
     vecSearch.Z = 50;
     
     PKVector3 vecSurface;
-    
-    if (Voxels_bClosestPointOnSurface(hVoxels, &vecSearch, &vecSurface))
-    {
-        PKColorFloat clr;
-        clr.R = 1.0f;
-        clr.G = 0.0f;
-        clr.B = 0.0f;
-        clr.A = 1.0f;
-        
-        PKPOLYLINE hPoly = PolyLine_hCreate(&clr);
-        
-        PolyLine_nAddVertex(hPoly, &vecSearch);
-        PolyLine_nAddVertex(hPoly, &vecSurface);
-        
-        Viewer_AddPolyLine(g_hViewer, 0, hPoly);
-    }
     
     PKVDBFILE hVdb = VdbFile_hCreate();
     

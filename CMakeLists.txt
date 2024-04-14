@@ -30,7 +30,7 @@
 # PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
 #
 # See the License for the specific language governing permissions and
-# limitations under the License.
+# limitations under the License
 #
 
 cmake_minimum_required(VERSION 3.27.4)
@@ -99,10 +99,6 @@ if( MSVC )
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 
-#include GLFW
-
-add_subdirectory( ${PICOGK_ROOT_DIR}/GLFW EXCLUDE_FROM_ALL )
-
 # Add library target
 add_library(${LIB_NAME} SHARED)
 
@@ -164,7 +160,7 @@ else ()
 )
 endif()
 
-target_link_libraries(${LIB_NAME} openvdb_static glfw)
+target_link_libraries(${LIB_NAME} openvdb_static )
 
 set_target_properties(${LIB_NAME} PROPERTIES PREFIX "")
 
