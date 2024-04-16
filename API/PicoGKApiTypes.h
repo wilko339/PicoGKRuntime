@@ -124,38 +124,38 @@ typedef float (*PKPFnfSdf)(const PKVector3* pvecCoord);
 
 // Viewer callbacks
 
-typedef void (*PKFInfo)(                const char*         pszMessage,
-                                        bool                bFatalError);
-
-typedef void (*PKPFUpdateRequested)(    void*               poViewer,
-                                        const PKVector2*    pvecViewport,
-                                        PKColorFloat*       pclrBackground,
-                                        PKMatrix4x4*        pmatModelViewProjection,
-                                        PKMatrix4x4*        pmatModelTransform,
-                                        PKMatrix4x4*        pmatStatic,
-                                        PKVector3*          pvecEyePosition,
-                                        PKVector3*          pvecEyeStatic);
-
-typedef void (*PKPFKeyPressed)(         void*               poViewer,
-                                        int32_t             iKey,
-                                        int32_t             iScancode,
-                                        int32_t             iAction,
-                                        int32_t             iModifiers);
-
-typedef void (*PKPFMouseMoved)(         void*               poViewer,
-                                        const PKVector2*    pvecMousePos);
-
-typedef void (*PKPFMouseButton)(        void*               poViewer,
-                                        int32_t             iButton,
-                                        int32_t             iAction,
-                                        int32_t             iModifiers,
-                                        const PKVector2*    pvecMousePos);
-
-typedef void (*PKPFScrollWheel)(        void*               poViewer,
-                                        const PKVector2*    pvecOffset,
-                                        const PKVector2*    pvecMousePos);
-
-typedef void (*PKPFWindowSize)(         void*               poViewer,
-                                        const PKVector2*    pvecWindowSize);
+//typedef void (*PKFInfo)(                const char*         pszMessage,
+//                                        bool                bFatalError);
+//
+//typedef void (*PKPFUpdateRequested)(    void*               poViewer,
+//                                        const PKVector2*    pvecViewport,
+//                                        PKColorFloat*       pclrBackground,
+//                                        PKMatrix4x4*        pmatModelViewProjection,
+//                                        PKMatrix4x4*        pmatModelTransform,
+//                                        PKMatrix4x4*        pmatStatic,
+//                                        PKVector3*          pvecEyePosition,
+//                                        PKVector3*          pvecEyeStatic);
+//
+//typedef void (*PKPFKeyPressed)(         void*               poViewer,
+//                                        int32_t             iKey,
+//                                        int32_t             iScancode,
+//                                        int32_t             iAction,
+//                                        int32_t             iModifiers);
+//
+//typedef void (*PKPFMouseMoved)(         void*               poViewer,
+//                                        const PKVector2*    pvecMousePos);
+//
+//typedef void (*PKPFMouseButton)(        void*               poViewer,
+//                                        int32_t             iButton,
+//                                        int32_t             iAction,
+//                                        int32_t             iModifiers,
+//                                        const PKVector2*    pvecMousePos);
+//
+//typedef void (*PKPFScrollWheel)(        void*               poViewer,
+//                                        const PKVector2*    pvecOffset,
+//                                        const PKVector2*    pvecMousePos);
+//
+//typedef void (*PKPFWindowSize)(         void*               poViewer,
+//                                        const PKVector2*    pvecWindowSize);
 
 #endif

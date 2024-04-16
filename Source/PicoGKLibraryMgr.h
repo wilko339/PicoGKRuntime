@@ -42,7 +42,6 @@
 
 #include "PicoGKMesh.h"
 #include "PicoGKLattice.h"
-#include "PicoGKPolyLine.h"
 #include "PicoGKVdbVoxels.h"
 #include "PicoGKVdbFile.h"
 
@@ -193,44 +192,6 @@ public: // Lattice functions
         {
             m_oLattices.erase(it);
             delete proLattice; // free reference to shared pointer
-            return;
-        }
-        
-        // not found, trying to free an element that doesn't exist
-        assert(false);
-    }
-    
-public: // PolyLine functions
-    
-    PolyLine::Ptr* proPolyLineCreate(const ColorFloat& clr)
-    {
-        PolyLine::Ptr   roPolyLine      = std::make_shared<PolyLine>(clr);
-        PolyLine::Ptr*  proPolyLine     = new PolyLine::Ptr(roPolyLine);
-        m_oPolyLines[proPolyLine]       = proPolyLine;
-        return proPolyLine;
-    }
-    
-    bool bPolyLineFind(const PolyLine::Ptr* proPolyLine) const
-    {
-        return (m_oPolyLines.find(proPolyLine) != m_oPolyLines.end());
-    }
-    
-    bool bPolyLineIsValid(const PolyLine::Ptr* proPolyLine)
-    {
-        if (proPolyLine == nullptr)
-            return false;
-        
-        return bPolyLineFind(proPolyLine);
-    }
-        
-    void PolyLineDestroy(PolyLine::Ptr* proPolyLine)
-    {
-        auto it = m_oPolyLines.find(proPolyLine);
-        
-        if (it != m_oPolyLines.end())
-        {
-            m_oPolyLines.erase(it);
-            delete proPolyLine; // free reference to shared pointer
             return;
         }
         
@@ -391,7 +352,6 @@ protected:
     
     std::map<const Mesh::Ptr*,      Mesh::Ptr*>     m_oMeshes;
     std::map<const Lattice::Ptr*,   Lattice::Ptr*>  m_oLattices;
-    std::map<const PolyLine::Ptr*,  PolyLine::Ptr*> m_oPolyLines;
     std::map<const Voxels::Ptr*,    Voxels::Ptr*>   m_oVoxels;
     std::map<const VdbFile::Ptr*,   VdbFile::Ptr*>  m_oVdbFiles;
 };
