@@ -245,6 +245,57 @@ public:
             DoRenderLattice(&oAccess, fBackground(), *roBeam, fVoxelSizeMM);
         }
     }
+
+    void RenderImplicitMasked(  const BBox3& oBBox,
+                                PKPFnfSdf pfn, 
+                                Voxels& mask, 
+                                VoxelSize oVoxelSize)
+    {
+        openvdb::tools::csgUnion(*mask.m_roFloatGrid, *m_roFloatGrid);
+
+        auto oAccess = m_roFloatGrid->getAccessor();
+        auto oMaskAccess = mask.m_roFloatGrid->getAccessor();
+
+        // Just gonna assume we are using a mask with the same voxel size
+        //openvdb::tools::csgIntersection(*m_roFloatGrid, *mask.m_roFloatGrid);
+
+        Coord xyzMin = oVoxelSize.xyzToVoxels(oBBox.vecMin);
+        Coord xyzMax = oVoxelSize.xyzToVoxels(oBBox.vecMax);
+
+        // Increase the bounding box by the voxel distance of the background value
+        // so we don't cut off the narrow band
+        int32_t iAdd = (int32_t)(m_roFloatGrid->background() + 0.5f);   
+
+        for (int32_t x = xyzMin.X - iAdd; x <= xyzMax.X + iAdd; x++)
+        for (int32_t y = xyzMin.Y - iAdd; y <= xyzMax.Y + iAdd; y++)
+        for (int32_t z = xyzMin.Z - iAdd; z <= xyzMax.Z + iAdd; z++)
+        {
+            Vector3 vecSample = oVoxelSize.vecToMM(Coord(x, y, z));
+            openvdb::Coord xyz(x, y, z);
+
+            auto fMaskValue = oMaskAccess.getValue(xyz);
+
+            if (fMaskValue < fBackground())
+            {
+                float fValue = std::min(oVoxelSize.fToVoxels((*pfn)(&vecSample)),
+                    oAccess.getValue(xyz));
+
+                if (fValue < fBackground())
+                {
+                    // inside or near inside
+
+                    if (fValue > -fBackground())
+                    {
+                        oAccess.setValue(xyz, fValue);
+                    }
+                    else
+                    {
+                        oAccess.setValue(xyz, -fBackground());
+                    }
+                }
+            }
+        }
+    }
     
     void RenderImplicit(    const BBox3& oBBox,
                             PKPFnfSdf pfn,
