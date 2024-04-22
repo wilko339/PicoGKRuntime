@@ -43,6 +43,7 @@
 #include <openvdb/tools/LevelSetRebuild.h>
 #include <openvdb/tools/LevelSetFilter.h>
 #include <openvdb/tools/RayIntersector.h>
+#include <openvdb/tools/GridTransformer.h>
 
 #include "PicoGKMesh.h"
 
@@ -140,6 +141,43 @@ public:
         openvdb::tools::csgIntersection(*m_roFloatGrid, *roOperand);
     }
     
+    void Transform(Matrix4x4 mTransform)
+    {
+        auto sourceGrid = deepCopyTypedGrid<FloatGrid>(m_roFloatGrid);
+        const openvdb::Vec4R vec1 = openvdb::Vec4R(
+            mTransform.vec1.W,
+            mTransform.vec1.X,
+            mTransform.vec1.Y,
+            mTransform.vec1.Z);
+
+        const openvdb::Vec4R vec2 = openvdb::Vec4R(
+            mTransform.vec2.W,
+            mTransform.vec2.X,
+            mTransform.vec2.Y,
+            mTransform.vec2.Z);
+
+        const openvdb::Vec4R vec3 = openvdb::Vec4R(
+            mTransform.vec3.W,
+            mTransform.vec3.X,
+            mTransform.vec3.Y,
+            mTransform.vec3.Z);
+
+        const openvdb::Vec4R vec4 = openvdb::Vec4R(
+            mTransform.vec4.W,
+            mTransform.vec4.X,
+            mTransform.vec4.Y,
+            mTransform.vec4.Z);
+
+        openvdb::Mat4R transform = openvdb::Mat4R(
+            vec1,
+            vec2,
+            vec3,
+            vec4, 4);
+
+        openvdb::tools::GridTransformer transformer(transform);
+        transformer.transformGrid<openvdb::tools::BoxSampler, openvdb::FloatGrid>(*sourceGrid, *m_roFloatGrid);
+    }
+
     void Offset(float fSize, VoxelSize oVoxelSize)
     {
         openvdb::tools::LevelSetFilter<openvdb::FloatGrid> oFilter(*m_roFloatGrid);
