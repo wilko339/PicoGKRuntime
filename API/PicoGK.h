@@ -166,6 +166,9 @@ PICOGK_API void         Voxels_BoolSubtract(        PKVOXELS                hThi
 PICOGK_API void         Voxels_BoolIntersect(       PKVOXELS                hThis,
                                                     PKVOXELS                hOther);
 
+PICOGK_API void         Voxels_Transform(           PKVOXELS                hThis,
+                                                    PKMatrix4x4             mTransform);
+
 PICOGK_API void         Voxels_Offset(              PKVOXELS                hThis,
                                                     float                   fDist);
 
