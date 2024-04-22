@@ -327,6 +327,15 @@ PICOGK_API void Voxels_BoolIntersect(   PKVOXELS hThis,
     (*proThis)->BoolIntersect(**proOther);
 }
 
+PICOGK_API void Voxels_Transform(       PKVOXELS hThis,
+                                        PKMatrix4x4 mTransform)
+{
+    Voxels::Ptr* proThis = (Voxels::Ptr*)hThis;
+    assert(Library::oLib().bVoxelsIsValid(proThis));
+
+    (*proThis)->Transform(mTransform);
+}
+
 PICOGK_API void Voxels_Offset(  PKVOXELS hThis,
                                 float fDist)
 {
@@ -375,6 +384,17 @@ PICOGK_API void Voxels_RenderImplicit(  PKVOXELS hThis,
     assert(Library::oLib().bVoxelsIsValid(proThis));
     
     (*proThis)->RenderImplicit(*poBBox, pfnSDF, Library::oLib().fVoxelSizeMM());
+}
+
+PICOGK_API void Voxels_RenderImplicitMasked(PKVOXELS hThis, const PKBBox3* poBBox, PKPFnfSdf pfnSDF, PKVOXELS hMask)
+{
+    Voxels::Ptr* proThis = (Voxels::Ptr*)hThis;
+    assert(Library::oLib().bVoxelsIsValid(proThis));
+
+    Voxels::Ptr* proMask = (Voxels::Ptr*)hMask;
+    assert(Library::oLib().bVoxelsIsValid(proMask));
+
+    (*proThis)->RenderImplicitMasked(*poBBox, pfnSDF, **proMask, Library::oLib().fVoxelSizeMM());
 }
 
 PICOGK_API void Voxels_IntersectImplicit(   PKVOXELS hThis,
