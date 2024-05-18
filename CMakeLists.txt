@@ -6,7 +6,7 @@
 #
 # For more information, please visit https://picogk.org
 #
-# PicoGK is developed and maintained by LEAP 71 - © 2023 by LEAP 71
+# PicoGK is developed and maintained by LEAP 71 - © 2023-2024 by LEAP 71
 # https://leap71.com
 #
 # Computational Engineering will profoundly change our physical world in the
@@ -37,7 +37,7 @@ cmake_minimum_required(VERSION 3.27.4)
 
 # Define the version
 set(LIB_VERSION_MAJOR 1)
-set(LIB_VERSION_MINOR 3)
+set(LIB_VERSION_MINOR 5)
 set(LIB_VERSION_SUBMINOR 0)
 set(LIB_VERSION "${LIB_VERSION_MAJOR}.${LIB_VERSION_MINOR}.${LIB_VERSION_SUBMINOR}")
 
@@ -69,7 +69,7 @@ option(PICOGK_UPDATE_SUBMODULES "Update and initialize Git submodules" OFF)
 if(PICOGK_UPDATE_SUBMODULES)
     message(STATUS "Updating and initializing Git submodules...")
     execute_process(
-        COMMAND git submodule update --init --recursive
+        COMMAND git submodule update --init --recursive --remote
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endif()

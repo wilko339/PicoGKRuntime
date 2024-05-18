@@ -6,7 +6,7 @@
 //
 // For more information, please visit https://picogk.org
 //
-// PicoGK is developed and maintained by LEAP 71 - © 2023 by LEAP 71
+// PicoGK is developed and maintained by LEAP 71 - © 2023-2024 by LEAP 71
 // https://leap71.com
 //
 // Computational Engineering will profoundly change our physical world in the
@@ -121,6 +121,14 @@ struct PKColorFloat
 // Implicit rendering callback function
 
 typedef float (*PKPFnfSdf)(const PKVector3* pvecCoord);
+
+// Callback iterating across active voxels
+
+typedef void (*PKFnTraverseActiveS)(    const PKVector3* pvecCoord,
+                                        float fValue);
+
+typedef void (*PKFnTraverseActiveV)(    const PKVector3* pvecCoord,
+                                        const PKVector3* pvecValue);
 
 // Viewer callbacks
 

@@ -6,7 +6,7 @@
 //
 // For more information, please visit https://picogk.org
 //
-// PicoGK is developed and maintained by LEAP 71 - © 2023 by LEAP 71
+// PicoGK is developed and maintained by LEAP 71 - © 2023-2024 by LEAP 71
 // https://leap71.com
 //
 // Computational Engineering will profoundly change our physical world in the
@@ -44,6 +44,55 @@
 #include "PicoGKLattice.h"
 #include "PicoGKVdbVoxels.h"
 #include "PicoGKVdbFile.h"
+#include "PicoGKVdbField.h"
+#include "PicoGKVdbMeta.h"
+
+#define PK_IMPLEMENT_STANDARD_LIB_FUNCTIONS(ClassName)                  \
+                                                                        \
+ClassName::Ptr* pro##ClassName##Create()                                \
+{                                                                       \
+    ClassName::Ptr  ro          =  std::make_shared<ClassName>();       \
+    ClassName::Ptr* pro         = new ClassName::Ptr(ro);               \
+    m_o##ClassName##List[pro]  = pro;                                   \
+    return pro;                                                         \
+}                                                                       \
+                                                                        \
+ClassName::Ptr* pro##ClassName##CreateCopy(const ClassName& oSource)    \
+{                                                                       \
+    ClassName::Ptr  ro          =  std::make_shared<ClassName>(oSource);\
+    ClassName::Ptr* pro         = new ClassName::Ptr(ro);               \
+    m_o##ClassName##List[pro]  = pro;                                   \
+    return pro;                                                         \
+}                                                                       \
+                                                                        \
+bool b##ClassName##Find(const ClassName::Ptr* pro) const                \
+{                                                                       \
+    return (m_o##ClassName##List.find(pro)                              \
+        != m_o##ClassName##List.end());                                 \
+}                                                                       \
+                                                                        \
+bool b##ClassName##IsValid(const ClassName::Ptr* pro)                   \
+{                                                                       \
+    if (pro == nullptr)                                                 \
+        return false;                                                   \
+                                                                        \
+    return b##ClassName##Find(pro);                                     \
+}                                                                       \
+                                                                        \
+void ClassName##Destroy(ClassName::Ptr* pro)                            \
+{                                                                       \
+    auto it = m_o##ClassName##List.find(pro);                           \
+                                                                        \
+    if (it != m_o##ClassName##List.end())                               \
+    {                                                                   \
+        m_o##ClassName##List.erase(it);                                 \
+        delete pro;                                                     \
+        return;                                                         \
+    }                                                                   \
+                                                                        \
+                                                                        \
+    assert(false);                                                      \
+}                                                                       
 
 namespace PicoGK
 {
@@ -114,15 +163,7 @@ public:
     }
     
 public: // Mesh Functions
-    
-    Mesh::Ptr* proMeshCreate()
-    {
-        
-        Mesh::Ptr   roMesh  = std::make_shared<Mesh>();
-        Mesh::Ptr*  proMesh = new Mesh::Ptr(roMesh);
-        m_oMeshes[proMesh]  = proMesh;
-        return proMesh;
-    }
+    PK_IMPLEMENT_STANDARD_LIB_FUNCTIONS(Mesh)
     
     Mesh::Ptr* proMeshCreateFromVoxels(const Voxels& oVoxels)
     {
@@ -132,128 +173,14 @@ public: // Mesh Functions
         return proMesh;
     }
     
-    bool bMeshFind(const Mesh::Ptr* proMesh) const
-    {
-        return (m_oMeshes.find(proMesh) != m_oMeshes.end());
-    }
-    
-    bool bMeshIsValid(const Mesh::Ptr* proMesh)
-    {
-        if (proMesh == nullptr)
-            return false;
-        
-        return bMeshFind(proMesh);
-    }
-        
-    void MeshDestroy(Mesh::Ptr* proMesh)
-    {
-        auto it = m_oMeshes.find(proMesh);
-        
-        if (it != m_oMeshes.end())
-        {
-            m_oMeshes.erase(it);
-            delete proMesh; // free reference to shared pointer
-            return;
-        }
-        
-        // not found, trying to free an element that doesn't exist
-        assert(false);
-    }
-    
 public: // Lattice functions
-    
-    Lattice::Ptr* proLatticeCreate()
-    {
-        
-        Lattice::Ptr roLattice = std::make_shared<Lattice>();
-        Lattice::Ptr* proLattice = new Lattice::Ptr(roLattice);
-        m_oLattices[proLattice] = proLattice;
-        return proLattice;
-    }
-    
-    bool bLatticeFind(const Lattice::Ptr* proLattice) const
-    {
-        return (m_oLattices.find(proLattice) != m_oLattices.end());
-    }
-    
-    bool bLatticeIsValid(const Lattice::Ptr* proLattice)
-    {
-        if (proLattice == nullptr)
-            return false;
-        
-        return bLatticeFind(proLattice);
-    }
-        
-    void LatticeDestroy(Lattice::Ptr* proLattice)
-    {
-        auto it = m_oLattices.find(proLattice);
-        
-        if (it != m_oLattices.end())
-        {
-            m_oLattices.erase(it);
-            delete proLattice; // free reference to shared pointer
-            return;
-        }
-        
-        // not found, trying to free an element that doesn't exist
-        assert(false);
-    }
+    PK_IMPLEMENT_STANDARD_LIB_FUNCTIONS(Lattice)
     
 public: // Voxels functions
-    
-    Voxels::Ptr* proVoxelsCreate()
-    {
-        Voxels::Ptr   roVoxels = std::make_shared<Voxels>();
-        Voxels::Ptr* proVoxels = new Voxels::Ptr(roVoxels);
-        m_oVoxels[proVoxels]   = proVoxels;
-        return proVoxels;
-    }
-    
-    Voxels::Ptr* proVoxelsCreateCopy(const Voxels& oSource)
-    {
-        Voxels::Ptr   roNew = std::make_shared<Voxels>(oSource);
-        Voxels::Ptr* proNew = new Voxels::Ptr(roNew);
-        m_oVoxels[proNew]   = proNew;
-        return proNew;
-    }
-    
-    bool bVoxelsFind(const Voxels::Ptr* proVoxels) const
-    {
-        return (m_oVoxels.find(proVoxels) != m_oVoxels.end());
-    }
-    
-    bool bVoxelsIsValid(const Voxels::Ptr* proVoxels)
-    {
-        if (proVoxels == nullptr)
-            return false;
-        
-        return bVoxelsFind(proVoxels);
-    }
-        
-    void VoxelsDestroy(Voxels::Ptr* proVoxels)
-    {
-        auto it = m_oVoxels.find(proVoxels);
-        
-        if (it != m_oVoxels.end())
-        {
-            m_oVoxels.erase(it);
-            delete proVoxels; // free reference to shared pointer
-            return;
-        }
-        
-        // not found, trying to free an element that doesn't exist
-        assert(false);
-    }
+    PK_IMPLEMENT_STANDARD_LIB_FUNCTIONS(Voxels)
     
 public: // VdbFile functions
-    
-    VdbFile::Ptr* proVdbFileCreate()
-    {
-        VdbFile::Ptr    roVdbFile =  std::make_shared<VdbFile>();
-        VdbFile::Ptr*   proVdbFile  = new VdbFile::Ptr(roVdbFile);
-        m_oVdbFiles[proVdbFile]     = proVdbFile;
-        return proVdbFile;
-    }
+    PK_IMPLEMENT_STANDARD_LIB_FUNCTIONS(VdbFile)
     
     VdbFile::Ptr* proVdbFileCreateFromFile(std::string strFileName)
     {
@@ -262,7 +189,7 @@ public: // VdbFile functions
             return nullptr;
         
         VdbFile::Ptr*   proVdbFile  = new VdbFile::Ptr(roVdbFile);
-        m_oVdbFiles[proVdbFile]     = proVdbFile;
+        m_oVdbFileList[proVdbFile]  = proVdbFile;
         return proVdbFile;
     }
     
@@ -273,34 +200,6 @@ public: // VdbFile functions
             return false;
         
         return roVdbFile->bSaveToFile(strFileName);
-    }
-    
-    bool bVdbFileFind(const VdbFile::Ptr* proVdbFile) const
-    {
-        return (m_oVdbFiles.find(proVdbFile) != m_oVdbFiles.end());
-    }
-    
-    bool bVdbFileIsValid(const VdbFile::Ptr* proVdbFile)
-    {
-        if (proVdbFile == nullptr)
-            return false;
-        
-        return bVdbFileFind(proVdbFile);
-    }
-        
-    void VdbFileDestroy(VdbFile::Ptr* proVdbFile)
-    {
-        auto it = m_oVdbFiles.find(proVdbFile);
-        
-        if (it != m_oVdbFiles.end())
-        {
-            m_oVdbFiles.erase(it);
-            delete proVdbFile; // free reference to shared pointer
-            return;
-        }
-        
-        // not found, trying to free an element that doesn't exist
-        assert(false);
     }
     
     Voxels::Ptr* proVdbFileGetVoxels(   VdbFile::Ptr roVdbFile,
@@ -314,10 +213,10 @@ public: // VdbFile functions
         if (roGrid->getGridClass() != GRID_LEVEL_SET)
             return nullptr; // not a voxel field
         
-        Voxels::Ptr roVoxels = std::make_shared<Voxels>(PICOGK_VOXEL_DEFAULTBACKGROUND, gridPtrCast<FloatGrid>(roGrid));
+        Voxels::Ptr roVoxels = std::make_shared<Voxels>(gridPtrCast<FloatGrid>(roGrid));
         
-        Voxels::Ptr* proVoxels = new Voxels::Ptr(roVoxels);
-        m_oVoxels[proVoxels]   = proVoxels;
+        Voxels::Ptr* proVoxels      = new Voxels::Ptr(roVoxels);
+        m_oVoxelsList[proVoxels]    = proVoxels;
         return proVoxels;
 
     }
@@ -326,7 +225,107 @@ public: // VdbFile functions
                                 std::string strName,
                                 Voxels::Ptr roVoxels)
     {
-        return roVdbFile->nAddGrid(strName, roVoxels->m_roFloatGrid);
+        return roVdbFile->nAddGrid(strName, roVoxels->roVdbGrid());
+    }
+    
+    int32_t nVdbFileAddScalarField( VdbFile::Ptr roVdbFile,
+                                    std::string strName,
+                                    ScalarField::Ptr roField)
+    {
+        return roVdbFile->nAddGrid(strName, roField->roVdbGrid());
+    }
+    
+    ScalarField::Ptr* proVdbFileGetScalarField( VdbFile::Ptr roVdbFile,
+                                                int32_t nIndex)
+    {
+        GridBase::Ptr roGrid = roVdbFile->roGridAt(nIndex);
+        
+        if (!roGrid->isType<FloatGrid>())
+            return nullptr;
+        
+        // We treat all float grids as scalar fields, if loaded through this function
+        // PicoGK stores scalar fields as fog volumes
+        
+        ScalarField::Ptr roField = std::make_shared<ScalarField>(gridPtrCast<FloatGrid>(roGrid));
+        
+        ScalarField::Ptr* proField      = new ScalarField::Ptr(roField);
+        m_oScalarFieldList[proField]    = proField;
+        return proField;
+    }
+    
+    int32_t nVdbFileAddVectorField( VdbFile::Ptr roVdbFile,
+                                    std::string strName,
+                                    VectorField::Ptr roField)
+    {
+        return roVdbFile->nAddGrid(strName, roField->roVdbGrid());
+    }
+    
+    VectorField::Ptr* proVdbFileGetVectorField( VdbFile::Ptr roVdbFile,
+                                                int32_t nIndex)
+    {
+        GridBase::Ptr roGrid = roVdbFile->roGridAt(nIndex);
+        
+        if (!roGrid->isType<Vec3SGrid>())
+            return nullptr;
+        
+        VectorField::Ptr roField        = std::make_shared<VectorField>(gridPtrCast<Vec3SGrid>(roGrid));
+        
+        VectorField::Ptr* proField      = new VectorField::Ptr(roField);
+        m_oVectorFieldList[proField]    = proField;
+        return proField;
+    }
+    
+public: // ScalarField functions
+    PK_IMPLEMENT_STANDARD_LIB_FUNCTIONS(ScalarField)
+    
+    ScalarField::Ptr* proScalarFieldCreateFromVoxels(const Voxels& oVoxels)
+    {
+        ScalarField::Ptr roField = std::make_shared<ScalarField>(oVoxels);
+        
+        ScalarField::Ptr* proField      = new ScalarField::Ptr(roField);
+        m_oScalarFieldList[proField]    = proField;
+        return proField;
+    }
+    
+public: // VectorField
+    PK_IMPLEMENT_STANDARD_LIB_FUNCTIONS(VectorField)
+    
+public:
+    VdbMeta::Ptr* proVdbMetaFromField(MetaMap::Ptr roMetaMap)
+    {
+        VdbMeta::Ptr roField = std::make_shared<VdbMeta>(roMetaMap);
+        
+        VdbMeta::Ptr* proField      = new VdbMeta::Ptr(roField);
+        m_oVdbMetaList[proField]    = proField;
+        return proField;
+    }
+    
+    bool bVdbMetaFind(const VdbMeta::Ptr* pro) const
+    {
+        return (m_oVdbMetaList.find(pro)
+            != m_oVdbMetaList.end());
+    }
+    
+    bool bVdbMetaIsValid(const VdbMeta::Ptr* pro)
+    {
+        if (pro == nullptr)
+            return false;
+
+        return bVdbMetaFind(pro);
+    }
+
+    void VdbMetaDestroy(VdbMeta::Ptr* pro)
+    {
+        auto it = m_oVdbMetaList.find(pro);
+        
+        if (it != m_oVdbMetaList.end())
+        {
+            m_oVdbMetaList.erase(it);
+            delete pro;
+            return;
+        }
+
+        assert(false);
     }
     
 public:
@@ -350,10 +349,14 @@ protected:
     float                           m_fMeshAdaptivity = 0.0f;
     bool                            m_bTriangulateMeshes = true;
     
-    std::map<const Mesh::Ptr*,      Mesh::Ptr*>     m_oMeshes;
-    std::map<const Lattice::Ptr*,   Lattice::Ptr*>  m_oLattices;
-    std::map<const Voxels::Ptr*,    Voxels::Ptr*>   m_oVoxels;
-    std::map<const VdbFile::Ptr*,   VdbFile::Ptr*>  m_oVdbFiles;
+    std::map<const Mesh::Ptr*,          Mesh::Ptr*>         m_oMeshList;
+    std::map<const Lattice::Ptr*,       Lattice::Ptr*>      m_oLatticeList;
+    std::map<const PolyLine::Ptr*,      PolyLine::Ptr*>     m_oPolyLineList;
+    std::map<const Voxels::Ptr*,        Voxels::Ptr*>       m_oVoxelsList;
+    std::map<const VdbFile::Ptr*,       VdbFile::Ptr*>      m_oVdbFileList;
+    std::map<const ScalarField::Ptr*,   ScalarField::Ptr*>  m_oScalarFieldList;
+    std::map<const VectorField::Ptr*,   VectorField::Ptr*>  m_oVectorFieldList;
+    std::map<const VdbMeta::Ptr*,       VdbMeta::Ptr*>      m_oVdbMetaList;
 };
 
 } // namespace PicoGK

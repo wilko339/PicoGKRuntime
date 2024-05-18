@@ -6,7 +6,7 @@
 //
 // For more information, please visit https://picogk.org
 //
-// PicoGK is developed and maintained by LEAP 71 - © 2023 by LEAP 71
+// PicoGK is developed and maintained by LEAP 71 - © 2023-2024 by LEAP 71
 // https://leap71.com
 //
 // Computational Engineering will profoundly change our physical world in the
@@ -50,12 +50,6 @@
 
 #define PKSTRINGIFY(x)              #x
 #define PKEXPAND_AND_STRINGIFY(x)   PKSTRINGIFY(x)
-
-#define PKTRAVERSEVOXELFIELD(pVoxels)\
-Coord xyzSZ = (pVoxels)->xyzSize();\
-for (int x=0; x<xyzSZ.X; x++)\
-for (int y=0; y<xyzSZ.Y; y++)\
-for (int z=0; z<xyzSZ.Z; z++)
 
 namespace PicoGK
 {

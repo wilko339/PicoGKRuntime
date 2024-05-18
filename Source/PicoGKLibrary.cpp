@@ -6,7 +6,7 @@
 //
 // For more information, please visit https://picogk.org
 //
-// PicoGK is developed and maintained by LEAP 71 - © 2023 by LEAP 71
+// PicoGK is developed and maintained by LEAP 71 - © 2023-2024 by LEAP 71
 // https://leap71.com
 //
 // Computational Engineering will profoundly change our physical world in the
@@ -69,6 +69,24 @@ PICOGK_API void Library_GetVersion(char psz[PKINFOSTRINGLEN])
 PICOGK_API void Library_GetBuildInfo(char psz[PKINFOSTRINGLEN])
 {
     SafeCopyInfoString(Library::oLib().strBuildInfo(), psz);
+}
+
+PICOGK_API void Library_VoxelsToMm( const PKVector3* pvecVoxelCoordinate,
+                                    PKVector3* pvecMmCoordinate)
+{
+    VoxelSize oVoxelSize(Library::oLib().fVoxelSizeMM());
+    pvecMmCoordinate->X = oVoxelSize.fToMM(pvecVoxelCoordinate->X);
+    pvecMmCoordinate->Y = oVoxelSize.fToMM(pvecVoxelCoordinate->Y);
+    pvecMmCoordinate->Z = oVoxelSize.fToMM(pvecVoxelCoordinate->Z);
+}
+
+PICOGK_API void Library_MmToVoxels( const PKVector3* pvecMmCoordinate,
+                                    PKVector3* pvecVoxelCoordinate)
+{
+    VoxelSize oVoxelSize(Library::oLib().fVoxelSizeMM());
+    pvecVoxelCoordinate->X = oVoxelSize.iToVoxels(pvecMmCoordinate->X);
+    pvecVoxelCoordinate->Y = oVoxelSize.iToVoxels(pvecMmCoordinate->Y);
+    pvecVoxelCoordinate->Z = oVoxelSize.iToVoxels(pvecMmCoordinate->Z);
 }
 
 PICOGK_API PKMESH Mesh_hCreate()
@@ -355,6 +373,33 @@ PICOGK_API void Voxels_TripleOffset(    PKVOXELS hThis,
     (*proThis)->TripleOffset(fDist, Library::oLib().fVoxelSizeMM());
 }
 
+PICOGK_API void Voxels_Gaussian(    PKVOXELS    hThis,
+                                    float       fSize)
+{
+    Voxels::Ptr* proThis = (Voxels::Ptr*) hThis;
+    assert(Library::oLib().bVoxelsIsValid(proThis));
+    
+    (*proThis)->Gaussian(fSize, Library::oLib().fVoxelSizeMM());
+}
+
+PICOGK_API void Voxels_Median(  PKVOXELS    hThis,
+                                float       fSize)
+{
+    Voxels::Ptr* proThis = (Voxels::Ptr*) hThis;
+    assert(Library::oLib().bVoxelsIsValid(proThis));
+    
+    (*proThis)->Median(fSize, Library::oLib().fVoxelSizeMM());
+}
+
+PICOGK_API void Voxels_Mean(    PKVOXELS    hThis,
+                                float       fSize)
+{
+    Voxels::Ptr* proThis = (Voxels::Ptr*) hThis;
+    assert(Library::oLib().bVoxelsIsValid(proThis));
+    
+    (*proThis)->Mean(fSize, Library::oLib().fVoxelSizeMM());
+}
+
 PICOGK_API void Voxels_RenderMesh(  PKVOXELS hThis,
                                     PKMESH hMesh)
 {
@@ -469,6 +514,9 @@ PICOGK_API bool Voxels_bRayCastToSurface(   PKVOXELS            hThis,
 }
 
 PICOGK_API void Voxels_GetVoxelDimensions(  PKVOXELS hThis,
+                                            int32_t* pnXOrigin,
+                                            int32_t* pnYOrigin,
+                                            int32_t* pnZOrigin,
                                             int32_t* pnXSize,
                                             int32_t* pnYSize,
                                             int32_t* pnZSize)
@@ -476,16 +524,23 @@ PICOGK_API void Voxels_GetVoxelDimensions(  PKVOXELS hThis,
     Voxels::Ptr* proThis = (Voxels::Ptr*) hThis;
     assert(Library::oLib().bVoxelsIsValid(proThis));
     
-    return (*proThis)->GetVoxelDimensions(pnXSize, pnYSize, pnZSize);
+    return (*proThis)->GetVoxelDimensions(  pnXOrigin,
+                                            pnYOrigin,
+                                            pnZOrigin,
+                                            pnXSize,
+                                            pnYSize,
+                                            pnZSize);
 }
 
 PICOGK_API void Voxels_GetSlice(    PKVOXELS    hThis,
                                     int32_t     nZSlice,
-                                    float*      pfBuffer)
+                                    float*      pfBuffer,
+                                    float*      pfBackgroundValue)
 {
     Voxels::Ptr* proThis = (Voxels::Ptr*) hThis;
     assert(Library::oLib().bVoxelsIsValid(proThis));
     
+    *pfBackgroundValue = (*proThis)->fBackground();
     return (*proThis)->GetSlice(nZSlice, pfBuffer);
 }
 
@@ -723,6 +778,54 @@ PICOGK_API int32_t VdbFile_nAddVoxels(  PKVDBFILE   hThis,
                                                 *proVoxels);
 }
 
+PICOGK_API PKSCALARFIELD VdbFile_hGetScalarField(   PKVDBFILE hThis,
+                                                    int32_t nIndex)
+{
+    VdbFile::Ptr* proThis = (VdbFile::Ptr*) hThis;
+    assert(Library::oLib().bVdbFileIsValid(proThis));
+    
+    return (PKSCALARFIELD) Library::oLib().proVdbFileGetScalarField(*proThis, nIndex);
+}
+
+PICOGK_API int32_t VdbFile_nAddScalarField( PKVDBFILE       hThis,
+                                            const char*     pszFieldName,
+                                            PKSCALARFIELD   hScalarField)
+{
+    VdbFile::Ptr* proThis = (VdbFile::Ptr*) hThis;
+    assert(Library::oLib().bVdbFileIsValid(proThis));
+    
+    ScalarField::Ptr* proField = (ScalarField::Ptr*) hScalarField;
+    assert(Library::oLib().bScalarFieldIsValid(proField));
+    
+    return Library::oLib().nVdbFileAddScalarField(  *proThis,
+                                                    pszFieldName,
+                                                    *proField);
+}
+
+PICOGK_API PKVECTORFIELD VdbFile_hGetVectorField(   PKVDBFILE   hThis,
+                                                    int32_t     nIndex)
+{
+    VdbFile::Ptr* proThis = (VdbFile::Ptr*) hThis;
+    assert(Library::oLib().bVdbFileIsValid(proThis));
+    
+    return (PKVECTORFIELD) Library::oLib().proVdbFileGetVectorField(*proThis, nIndex);
+}
+
+PICOGK_API int32_t VdbFile_nAddVectorField( PKVDBFILE       hThis,
+                                            const char*     pszFieldName,
+                                            PKVECTORFIELD   hVectorField)
+{
+    VdbFile::Ptr* proThis = (VdbFile::Ptr*) hThis;
+    assert(Library::oLib().bVdbFileIsValid(proThis));
+    
+    VectorField::Ptr* proField = (VectorField::Ptr*) hVectorField;
+    assert(Library::oLib().bVectorFieldIsValid(proField));
+    
+    return Library::oLib().nVdbFileAddVectorField(  *proThis,
+                                                    pszFieldName,
+                                                    *proField);
+}
+
 PICOGK_API int32_t VdbFile_nFieldCount(PKVDBFILE hThis)
 {
     VdbFile::Ptr* proThis = (VdbFile::Ptr*) hThis;
@@ -749,5 +852,378 @@ PICOGK_API int VdbFile_nFieldType(  PKVDBFILE   hThis,
     assert(Library::oLib().bVdbFileIsValid(proThis));
     
     return (*proThis)->nTypeAt(nIndex);
+}
+
+PICOGK_API PKSCALARFIELD ScalarField_hCreate()
+{
+    return (PKSCALARFIELD) Library::oLib().proScalarFieldCreate();
+}
+
+PICOGK_API PKSCALARFIELD ScalarField_hCreateCopy(PKSCALARFIELD hSource)
+{
+    ScalarField::Ptr* proSource = (ScalarField::Ptr*) hSource;
+    return (PKSCALARFIELD) Library::oLib().proScalarFieldCreateCopy(**proSource);
+}
+
+PICOGK_API bool ScalarField_bIsValid(PKSCALARFIELD hThis)
+{
+    ScalarField::Ptr* proThis = (ScalarField::Ptr*) hThis;
+    return Library::oLib().bScalarFieldIsValid(proThis);
+}
+
+PICOGK_API void ScalarField_Destroy(PKSCALARFIELD   hThis)
+{
+    ScalarField::Ptr* proThis = (ScalarField::Ptr*) hThis;
+    assert(Library::oLib().bScalarFieldIsValid(proThis));
+    
+    Library::oLib().ScalarFieldDestroy(proThis);
+}
+
+PICOGK_API PKSCALARFIELD ScalarField_hCreateFromVoxels(PKVOXELS hVoxels)
+{
+    Voxels::Ptr* proVoxels = (Voxels::Ptr*) hVoxels;
+    assert(Library::oLib().bVoxelsIsValid(proVoxels));
+    
+    ScalarField::Ptr* proField = Library::oLib().proScalarFieldCreateFromVoxels(**proVoxels);
+    return (PKVECTORFIELD) proField;
+}
+
+PICOGK_API void ScalarField_SetValue(   PKSCALARFIELD       hThis,
+                                        const PKVector3*    pvecPosition,
+                                        float               fValue)
+{
+    ScalarField::Ptr* proThis = (ScalarField::Ptr*) hThis;
+    assert(Library::oLib().bScalarFieldIsValid(proThis));
+    
+    (*proThis)->SetValue(   *pvecPosition,
+                            Library::oLib().fVoxelSizeMM(),
+                            fValue);
+}
+
+PICOGK_API bool ScalarField_bGetValue(  PKSCALARFIELD       hThis,
+                                        const PKVector3*    pvecPosition,
+                                        float*              pfValue)
+{
+    ScalarField::Ptr* proThis = (ScalarField::Ptr*) hThis;
+    assert(Library::oLib().bScalarFieldIsValid(proThis));
+    
+    return (*proThis)->bGetValue(   *pvecPosition,
+                                    Library::oLib().fVoxelSizeMM(),
+                                    pfValue);
+}
+
+PICOGK_API void ScalarField_RemoveValue(    PKSCALARFIELD       hThis,
+                                            const PKVector3*    pvecPosition)
+{
+    ScalarField::Ptr* proThis = (ScalarField::Ptr*) hThis;
+    assert(Library::oLib().bScalarFieldIsValid(proThis));
+    
+    (*proThis)->RemoveValue( *pvecPosition,
+                             Library::oLib().fVoxelSizeMM());
+}
+
+PICOGK_API void ScalarField_GetVoxelDimensions( PKSCALARFIELD hThis,
+                                                int32_t* pnXOrigin,
+                                                int32_t* pnYOrigin,
+                                                int32_t* pnZOrigin,
+                                                int32_t* pnXSize,
+                                                int32_t* pnYSize,
+                                                int32_t* pnZSize)
+{
+    ScalarField::Ptr* proThis = (ScalarField::Ptr*) hThis;
+    assert(Library::oLib().bScalarFieldIsValid(proThis));
+    
+    return (*proThis)->GetVoxelDimensions(  pnXOrigin,
+                                            pnYOrigin,
+                                            pnZOrigin,
+                                            pnXSize,
+                                            pnYSize,
+                                            pnZSize);
+}
+
+PICOGK_API void ScalarField_GetSlice(   PKSCALARFIELD   hThis,
+                                        int32_t     nZSlice,
+                                        float*      pfBuffer)
+{
+    ScalarField::Ptr* proThis = (ScalarField::Ptr*) hThis;
+    assert(Library::oLib().bScalarFieldIsValid(proThis));
+    return (*proThis)->GetSlice(nZSlice, pfBuffer);
+}
+
+PICOGK_API void ScalarField_TraverseActive( PKSCALARFIELD hThis,
+                                            PKFnTraverseActiveS pfnCallback)
+{
+    ScalarField::Ptr* proThis = (ScalarField::Ptr*) hThis;
+    assert(Library::oLib().bScalarFieldIsValid(proThis));
+    
+    (*proThis)->TraverseActive(pfnCallback, Library::oLib().fVoxelSizeMM());
+}
+
+PICOGK_API PKVECTORFIELD VectorField_hCreate()
+{
+    return (PKVECTORFIELD) Library::oLib().proVectorFieldCreate();
+}
+
+PICOGK_API PKVECTORFIELD VectorField_hCreateCopy(PKVECTORFIELD hSource)
+{
+    VectorField::Ptr* proSource = (VectorField::Ptr*) hSource;
+    return (PKVECTORFIELD) Library::oLib().proVectorFieldCreateCopy(**proSource);
+}
+
+PICOGK_API bool VectorField_bIsValid(PKVECTORFIELD hThis)
+{
+    VectorField::Ptr* proThis = (VectorField::Ptr*) hThis;
+    return Library::oLib().bVectorFieldIsValid(proThis);
+}
+
+PICOGK_API void VectorField_Destroy(PKVECTORFIELD hThis)
+{
+    VectorField::Ptr* proThis = (VectorField::Ptr*) hThis;
+    assert(Library::oLib().bVectorFieldIsValid(proThis));
+    
+    Library::oLib().VectorFieldDestroy(proThis);
+}
+
+PICOGK_API PKVECTORFIELD VectorField_hCreateFromVoxels(PKVOXELS hVoxels)
+{
+    Voxels::Ptr* proVoxels = (Voxels::Ptr*) hVoxels;
+    assert(Library::oLib().bVoxelsIsValid(proVoxels));
+    
+    VectorField::Ptr* proField = Library::oLib().proVectorFieldCreate();
+    (*proField)->AddGradientFieldFrom(*proVoxels);
+    
+    return (PKVECTORFIELD) proField;
+}
+
+PICOGK_API PKVECTORFIELD VectorField_hBuildFromVoxels(  PKVOXELS hVoxels,
+                                                        const PKVector3* pvecValue,
+                                                        float fSdThreshold)
+{
+    Voxels::Ptr* proVoxels = (Voxels::Ptr*) hVoxels;
+    assert(Library::oLib().bVoxelsIsValid(proVoxels));
+    
+    VectorField::Ptr* proField = Library::oLib().proVectorFieldCreate();
+    (*proField)->BuildFieldFrom(*proVoxels, *pvecValue, fSdThreshold);
+    
+    return (PKVECTORFIELD) proField;
+}
+
+PICOGK_API void VectorField_SetValue(   PKVECTORFIELD       hThis,
+                                        const PKVector3*    pvecPosition,
+                                        const PKVector3*    pvecValue)
+{
+    VectorField::Ptr* proThis = (VectorField::Ptr*) hThis;
+    assert(Library::oLib().bVectorFieldIsValid(proThis));
+    
+    (*proThis)->SetValue(   *pvecPosition,
+                            Library::oLib().fVoxelSizeMM(),
+                            *pvecValue);
+}
+
+PICOGK_API bool VectorField_bGetValue(  PKSCALARFIELD       hThis,
+                                        const PKVector3*    pvecPosition,
+                                        PKVector3*          pvecValue)
+{
+    VectorField::Ptr* proThis = (VectorField::Ptr*) hThis;
+    assert(Library::oLib().bVectorFieldIsValid(proThis));
+    
+    return (*proThis)->bGetValue(   *pvecPosition,
+                                    Library::oLib().fVoxelSizeMM(),
+                                    pvecValue);
+}
+
+PICOGK_API void VectorField_RemoveValue(    PKVECTORFIELD       hThis,
+                                            const PKVector3*    pvecPosition)
+{
+    VectorField::Ptr* proThis = (VectorField::Ptr*) hThis;
+    assert(Library::oLib().bVectorFieldIsValid(proThis));
+    
+    (*proThis)->RemoveValue( *pvecPosition,
+                             Library::oLib().fVoxelSizeMM());
+}
+
+PICOGK_API void VectorField_TraverseActive( PKVECTORFIELD hThis,
+                                            PKFnTraverseActiveV pfnCallback)
+{
+    VectorField::Ptr* proThis = (VectorField::Ptr*) hThis;
+    assert(Library::oLib().bVectorFieldIsValid(proThis));
+    
+    (*proThis)->TraverseActive(pfnCallback, Library::oLib().fVoxelSizeMM());
+}
+
+PICOGK_API PKMETADATA Metadata_hFromVoxels(PKVOXELS hField)
+{
+    Voxels::Ptr* proField = (Voxels::Ptr*) hField;
+    assert(Library::oLib().bVoxelsIsValid(proField));
+    
+    return (PKMETADATA) Library::oLib().proVdbMetaFromField((*proField)->roVdbGrid());
+}
+
+PICOGK_API PKMETADATA Metadata_hFromScalarField(PKSCALARFIELD hField)
+{
+    ScalarField::Ptr* proField = (ScalarField::Ptr*) hField;
+    assert(Library::oLib().bScalarFieldIsValid(proField));
+    
+    return (PKMETADATA) Library::oLib().proVdbMetaFromField((*proField)->roVdbGrid());
+}
+
+PICOGK_API PKMETADATA Metadata_hFromVectorField(PKVECTORFIELD hField)
+{
+    VectorField::Ptr* proField = (VectorField::Ptr*) hField;
+    assert(Library::oLib().bVectorFieldIsValid(proField));
+    
+    return (PKMETADATA) Library::oLib().proVdbMetaFromField((*proField)->roVdbGrid());
+}
+
+PICOGK_API void Metadata_Destroy(PKMETADATA hThis)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    Library::oLib().VdbMetaDestroy(proThis);
+}
+
+PICOGK_API int32_t Metadata_nCount(PKMETADATA hThis)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    return (*proThis)->nCount();
+}
+
+PICOGK_API int32_t Metadata_nNameLengthAt(  PKMETADATA  hThis,
+                                            int32_t     nIndex)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    std::string strName = (*proThis)->strNameAt(nIndex);
+    return (int32_t) strName.length();
+}
+
+PICOGK_API bool Metadata_bGetNameAt(        PKMETADATA  hThis,
+                                            int32_t     nIndex,
+                                            char*       psz,
+                                            int32_t     nMaxStringLen)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    if (nIndex >= (*proThis)->nCount())
+        return false;
+    
+    std::string s = (*proThis)->strNameAt(nIndex);
+    
+#ifdef _WINDOWS
+    strncpy_s(psz, nMaxStringLen-1, s.c_str(), s.length());
+#else
+    strncpy(psz, s.c_str(), nMaxStringLen-1);
+#endif
+    psz[nMaxStringLen-1] = 0;
+    
+    return true;
+}
+
+PICOGK_API int32_t Metadata_nTypeAt(    PKMETADATA  hThis,
+                                        const char* psz)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    return (int32_t) (*proThis)->eTypeAt(psz);
+}
+
+PICOGK_API int32_t Metadata_nStringLengthAt(    PKMETADATA          hThis,
+                                                const char*         psz)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    std::string str;
+    if (!(*proThis)->bGetValueAt(psz, &str))
+        return 0;
+    
+    return (int32_t) str.length();
+}
+
+PICOGK_API bool Metadata_bGetStringAt(  PKMETADATA      hThis,
+                                        const char*     psz,
+                                        char*           pszValue,
+                                        int32_t         nMaxStringLen)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    std::string s;
+    if (!(*proThis)->bGetValueAt(psz, &s))
+        return false;
+    
+#ifdef _WINDOWS
+    strncpy_s(pszValue, nMaxStringLen-1, s.c_str(), s.length());
+#else
+    strncpy(pszValue, s.c_str(), nMaxStringLen-1);
+#endif
+    pszValue[nMaxStringLen-1] = 0;
+    
+    return true;
+}
+
+PICOGK_API bool Metadata_bGetFloatAt(   PKMETADATA      hThis,
+                                        const char*     psz,
+                                        float*          pfValue)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    return (*proThis)->bGetValueAt(psz, pfValue);
+}
+
+PICOGK_API bool Metadata_bGetVectorAt(  PKMETADATA      hThis,
+                                        const char*     psz,
+                                        PKVector3*      pvecValue)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    return (*proThis)->bGetValueAt(psz, pvecValue);
+}
+
+PICOGK_API void Metadata_SetStringValue(    PKMETADATA     hThis,
+                                            const char*    pszFieldName,
+                                            const char*    pszValue)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    return (*proThis)->SetValue(pszFieldName, pszValue);
+}
+
+PICOGK_API void Metadata_SetFloatValue( PKMETADATA      hThis,
+                                        const char*     pszFieldName,
+                                        float           fValue)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    return (*proThis)->SetValue(pszFieldName, fValue);
+}
+
+PICOGK_API void Metadata_SetVectorValue(    PKMETADATA          hThis,
+                                            const char*         pszFieldName,
+                                            const PKVector3*    pvecValue)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    (*proThis)->SetValue(pszFieldName, *pvecValue);
+}
+
+PICOGK_API void MetaData_RemoveValue(   PKMETADATA  hThis,
+                                        const char* pszFieldName)
+{
+    VdbMeta::Ptr* proThis = (VdbMeta::Ptr*) hThis;
+    assert(Library::oLib().bVdbMetaIsValid(proThis));
+    
+    (*proThis)->RemoveAt(pszFieldName);
 }
 
