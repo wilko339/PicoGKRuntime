@@ -542,6 +542,7 @@ PICOGK_API void Voxels_GetVoxelDimensions(  PKVOXELS hThis,
 
 PICOGK_API void Voxels_GetSlice(    PKVOXELS    hThis,
                                     float       fZSlice,
+                                    int         resolution,
                                     float*      pfBuffer,
                                     float*      pfBackgroundValue)
 {
@@ -549,7 +550,7 @@ PICOGK_API void Voxels_GetSlice(    PKVOXELS    hThis,
     assert(Library::oLib().bVoxelsIsValid(proThis));
     
     *pfBackgroundValue = (*proThis)->fBackground();
-    return (*proThis)->GetSlice(fZSlice, pfBuffer, Library::oLib().fVoxelSizeMM());
+    return (*proThis)->GetSlice(fZSlice, resolution, pfBuffer, Library::oLib().fVoxelSizeMM());
 }
 
 //PICOGK_API PKVIEWER Viewer_hCreate( const char*             pszWindowTitle,

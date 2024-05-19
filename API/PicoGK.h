@@ -244,7 +244,8 @@ PICOGK_API void             Voxels_GetVoxelDimensions(      PKVOXELS            
                                                             int32_t*            pnZSize);
 
 PICOGK_API void             Voxels_GetSlice(                PKVOXELS            hThis,
-                                                            float             nZSlice,
+                                                            float               nZSlice,
+                                                            int                 resolution,
                                                             float*              pfBuffer,
                                                             float*              pfBackgroundValue);
 
