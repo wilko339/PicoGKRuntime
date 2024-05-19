@@ -107,11 +107,10 @@ public:
         return m_oLib;
     }
     
-    void InitLibrary(float fVoxelSizeMM, bool bTriangulateMeshes, float fMeshAdaptivity)
+    void InitLibrary(float fVoxelSizeMM, float fMeshAdaptivity)
     {
         // assert(m_fVoxelSizeMM == 0.0f); // set only once
         m_fVoxelSizeMM = fVoxelSizeMM;
-        m_bTriangulateMeshes = bTriangulateMeshes;
         m_fMeshAdaptivity = fMeshAdaptivity;
     }
     
@@ -167,9 +166,9 @@ public: // Mesh Functions
     
     Mesh::Ptr* proMeshCreateFromVoxels(const Voxels& oVoxels)
     {
-        Mesh::Ptr   roMesh  = oVoxels.roAsMesh(fVoxelSizeMM(), bTriangulateMeshes(), fMeshAdaptivity());
+        Mesh::Ptr   roMesh  = oVoxels.roAsMesh(fVoxelSizeMM(), fMeshAdaptivity());
         Mesh::Ptr*  proMesh = new Mesh::Ptr(roMesh);
-        m_oMeshes[proMesh]  = proMesh;
+        m_oMeshList[proMesh]  = proMesh;
         return proMesh;
     }
     
@@ -351,7 +350,6 @@ protected:
     
     std::map<const Mesh::Ptr*,          Mesh::Ptr*>         m_oMeshList;
     std::map<const Lattice::Ptr*,       Lattice::Ptr*>      m_oLatticeList;
-    std::map<const PolyLine::Ptr*,      PolyLine::Ptr*>     m_oPolyLineList;
     std::map<const Voxels::Ptr*,        Voxels::Ptr*>       m_oVoxelsList;
     std::map<const VdbFile::Ptr*,       VdbFile::Ptr*>      m_oVdbFileList;
     std::map<const ScalarField::Ptr*,   ScalarField::Ptr*>  m_oScalarFieldList;
