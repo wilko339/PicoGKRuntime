@@ -43,6 +43,7 @@
 #include <openvdb/tools/LevelSetRebuild.h>
 #include <openvdb/tools/LevelSetFilter.h>
 #include <openvdb/tools/RayIntersector.h>
+#include <openvdb/tools/GridTransformer.h>
 
 #include "PicoGKMesh.h"
 
@@ -126,20 +127,131 @@ public:
 
     void BoolAdd(const Voxels& oOther)
     {
+        const openvdb::math::Transform
+            & targetXform = m_roGrid->transform(),
+            & sourceXform = oOther.m_roGrid->transform();
+
+        FloatGrid::Ptr sourceGrid = openvdb::createLevelSet<openvdb::FloatGrid>(m_roGrid->voxelSize()[0]);
+        sourceGrid->transform() = m_roGrid->transform();
         FloatGrid::Ptr roOperand = deepCopyTypedGrid<FloatGrid>(oOther.m_roGrid);
-        openvdb::tools::csgUnion(*m_roGrid, *roOperand);
+
+        // If the transforms are the same, we are ok
+        // Is this check redundant, or should we just resample every time?
+        if (sourceXform == targetXform)
+        {
+            openvdb::tools::csgUnion(*m_roGrid, *roOperand);
+        }
+
+        // If we have changed the transform, we need to resample before we can combine
+        else
+        {
+            FloatGrid::Ptr target = deepCopyTypedGrid<FloatGrid>(m_roGrid);
+            openvdb::Mat4R xform = sourceXform.baseMap()->getAffineMap()->getMat4() *
+                targetXform.baseMap()->getAffineMap()->getMat4().inverse();
+
+            openvdb::tools::GridTransformer transformer(xform);
+            transformer.transformGrid<openvdb::tools::BoxSampler, openvdb::FloatGrid>(*roOperand, *sourceGrid);
+            openvdb::tools::csgUnion(*m_roGrid, *sourceGrid, true);
+        }
     }
 
     void BoolSubtract(const Voxels& oOther)
     {
+        const openvdb::math::Transform
+            & targetXform = m_roGrid->transform(),
+            & sourceXform = oOther.m_roGrid->transform();
+
+        FloatGrid::Ptr sourceGrid = openvdb::createLevelSet<openvdb::FloatGrid>(m_roGrid->voxelSize()[0]);
+        sourceGrid->transform() = m_roGrid->transform();
         FloatGrid::Ptr roOperand = deepCopyTypedGrid<FloatGrid>(oOther.m_roGrid);
-        openvdb::tools::csgDifference(*m_roGrid, *roOperand);
+
+        // If the transforms are the same, we are ok
+        // Is this check redundant, or should we just resample every time?
+        if (sourceXform == targetXform)
+        {
+            openvdb::tools::csgDifference(*m_roGrid, *roOperand);
+        }
+
+        // If we have changed the transform, we need to resample before we can combine
+        else
+        {
+            FloatGrid::Ptr target = deepCopyTypedGrid<FloatGrid>(m_roGrid);
+            openvdb::Mat4R xform = sourceXform.baseMap()->getAffineMap()->getMat4() *
+                targetXform.baseMap()->getAffineMap()->getMat4().inverse();
+
+            openvdb::tools::GridTransformer transformer(xform);
+            transformer.transformGrid<openvdb::tools::BoxSampler, openvdb::FloatGrid>(*roOperand, *sourceGrid);
+            openvdb::tools::csgDifference(*m_roGrid, *sourceGrid, true);
+        }
     }
 
     void BoolIntersect(const Voxels& oOther)
     {
+        const openvdb::math::Transform
+            & targetXform = m_roGrid->transform(),
+            & sourceXform = oOther.m_roGrid->transform();
+
+        FloatGrid::Ptr sourceGrid = openvdb::createLevelSet<openvdb::FloatGrid>();
+        sourceGrid->transform() = m_roGrid->transform();
+        sourceGrid->voxelSize() = m_roGrid->voxelSize();
         FloatGrid::Ptr roOperand = deepCopyTypedGrid<FloatGrid>(oOther.m_roGrid);
-        openvdb::tools::csgIntersection(*m_roGrid, *roOperand);
+
+        // If the transforms are the same, we are ok
+        // Is this check redundant, or should we just resample every time?
+        if (sourceXform == targetXform)
+        {
+            openvdb::tools::csgIntersection(*m_roGrid, *roOperand);
+        }
+
+        // If we have changed the transform, we need to resample before we can combine
+        else
+        {
+            FloatGrid::Ptr target = deepCopyTypedGrid<FloatGrid>(m_roGrid);
+            openvdb::Mat4R xform = sourceXform.baseMap()->getAffineMap()->getMat4() *
+                targetXform.baseMap()->getAffineMap()->getMat4().inverse();
+
+            openvdb::tools::GridTransformer transformer(xform);
+            transformer.transformGrid<openvdb::tools::BoxSampler, openvdb::FloatGrid>(*roOperand, *sourceGrid);
+            openvdb::tools::csgIntersection(*m_roGrid, *sourceGrid, true);
+        }
+    }
+
+    void Transform(Matrix4x4 mTransform)
+    {
+        // Create the transformation matrix
+        openvdb::Vec4R vec1 = openvdb::Vec4R(
+            mTransform.vec1.X,
+            mTransform.vec1.Y,
+            mTransform.vec1.Z,
+            mTransform.vec1.W);
+
+        openvdb::Vec4R vec2 = openvdb::Vec4R(
+            mTransform.vec2.X,
+            mTransform.vec2.Y,
+            mTransform.vec2.Z,
+            mTransform.vec2.W);
+
+        openvdb::Vec4R vec3 = openvdb::Vec4R(
+            mTransform.vec3.X,
+            mTransform.vec3.Y,
+            mTransform.vec3.Z,
+            mTransform.vec3.W);
+
+        openvdb::Vec4R vec4 = openvdb::Vec4R(
+            mTransform.vec4.X,
+            mTransform.vec4.Y,
+            mTransform.vec4.Z,
+            mTransform.vec4.W);
+
+        openvdb::Mat4R transformMatrix = openvdb::Mat4R(
+            vec1,
+            vec2,
+            vec3,
+            vec4, true);
+
+        auto currentTransform = m_roGrid->transform().copy();
+        currentTransform->postMult(transformMatrix);
+        m_roGrid->setTransform(currentTransform);
     }
     
     void Offset(float fSize, VoxelSize oVoxelSize)
@@ -324,7 +436,7 @@ public:
         BoolIntersect(oVox);
     }
 
-    Mesh::Ptr roAsMesh(float fVoxelSizeMM, bool bTriangulateMeshes, float fMeshAdaptivity) const
+    Mesh::Ptr roAsMesh(float fVoxelSizeMM, float fMeshAdaptivity) const
     {
         Mesh::Ptr roMesh = std::make_shared<Mesh>();
         
@@ -339,19 +451,6 @@ public:
                                                          0.0f,
                                                          fMeshAdaptivity,
                                                          true);
-
-        if (bTriangulateMeshes)
-        {
-            for (const openvdb::Vec4I oQuad : oQuads)
-            {
-                openvdb::Vec3I o1(oQuad[0], oQuad[1], oQuad[2]);
-                oTriangles.push_back(o1);
-
-                openvdb::Vec3I o2(oQuad[2], oQuad[3], oQuad[0]);
-                oTriangles.push_back(o2);
-            }
-            oQuads.clear();
-        }
 	    
         for (const openvdb::Vec3s& v : oPoints)
         {
@@ -447,9 +546,12 @@ public:
                                 VoxelSize oVoxelSize)
     {
         CoordBBox oBBox = m_roGrid->evalActiveVoxelBoundingBox();
-        
+        auto transform = m_roGrid->transform();
+
+        auto transformedBBox = transform.indexToWorld(oBBox);
+
         auto oAccess = m_roGrid->getConstAccessor();
-        
+
         int nCount = 0;
         
         BBox3 oResult;
@@ -462,7 +564,10 @@ public:
             {
                 // Voxel is set
                 nCount++;
-                oResult.Include(oVoxelSize.vecToMM(Coord(x,y,z)));
+                auto transformedPoint = transform.indexToWorld(Vec3d(x, y, z));
+
+                auto toInclude = Vector3((float)transformedPoint.x(), (float)transformedPoint.y(), (float)transformedPoint.z());
+                oResult.Include(oVoxelSize.vecToMM(Coord(toInclude.X, toInclude.Y, toInclude.Z)));
             }
         }
         
@@ -588,19 +693,28 @@ public:
         *pnZSize    = oBBox.extents().z();
     }
     
-    void GetSlice( int32_t nZSlice,
-                   float* pfBuffer)
+    void GetSlice( float fZSlice,
+                   float* pfBuffer,
+                   VoxelSize oVoxelSize)
     {
         CoordBBox oBBox = m_roGrid->evalActiveVoxelBoundingBox();
-        openvdb::Coord xyz(0, 0, nZSlice + oBBox.min().z());
+        auto voxelSize = m_roGrid->voxelSize();
+        openvdb::Coord xyz(0, 0, 0);
+
+        auto transform = m_roGrid->transform();
+        // auto oAccess = m_roGrid->getConstAccessor();
         
-        auto oAccess = m_roGrid->getConstAccessor();
-        
+        openvdb::tools::GridSampler<FloatGrid, openvdb::tools::BoxSampler> sampler(*m_roGrid);
+
         int32_t n=0;
         for (xyz.y()=oBBox.min().y(); xyz.y()<=oBBox.max().y(); xyz.y()++)
         for (xyz.x()=oBBox.min().x(); xyz.x()<=oBBox.max().x(); xyz.x()++)
         {
-            pfBuffer[n] = oAccess.getValue(xyz);
+            auto transformedPoint = transform.indexToWorld(xyz);
+            auto samplingPoint = Vec3d(transformedPoint.x(), transformedPoint.y(), fZSlice / oVoxelSize.m_fVoxelSizeMM);
+            auto sample = sampler.wsSample(samplingPoint);
+            pfBuffer[n] = sample;
+            // pfBuffer[n] = oAccess.getValue(xyz);
             n++;
         }
     }
