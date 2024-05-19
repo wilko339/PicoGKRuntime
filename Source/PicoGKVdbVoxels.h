@@ -548,8 +548,6 @@ public:
         CoordBBox oBBox = m_roGrid->evalActiveVoxelBoundingBox();
         auto transform = m_roGrid->transform();
 
-        auto transformedBBox = transform.indexToWorld(oBBox);
-
         auto oAccess = m_roGrid->getConstAccessor();
 
         int nCount = 0;
@@ -694,6 +692,7 @@ public:
     }
     
     void GetSlice( float fZSlice,
+                   int resolution,
                    float* pfBuffer,
                    VoxelSize oVoxelSize)
     {
@@ -706,17 +705,40 @@ public:
         
         openvdb::tools::GridSampler<FloatGrid, openvdb::tools::BoxSampler> sampler(*m_roGrid);
 
+        auto worldMin = transform.indexToWorld(oBBox.min());
+        auto worldMax = transform.indexToWorld(oBBox.max());
+
         int32_t n=0;
-        for (xyz.y()=oBBox.min().y(); xyz.y()<=oBBox.max().y(); xyz.y()++)
-        for (xyz.x()=oBBox.min().x(); xyz.x()<=oBBox.max().x(); xyz.x()++)
+
+        double xMin = worldMin.x();
+        double yMin = worldMin.y();
+
+        double xDiv = (worldMax.x() - worldMin.x()) / (double)resolution;
+        double yDiv = (worldMax.y() - worldMin.y()) / (double)resolution;
+
+        Vec3d samplePoint;
+
+        for (int y = 0; y < resolution; y++)
         {
-            auto transformedPoint = transform.indexToWorld(xyz);
-            auto samplingPoint = Vec3d(transformedPoint.x(), transformedPoint.y(), fZSlice / oVoxelSize.m_fVoxelSizeMM);
-            auto sample = sampler.wsSample(samplingPoint);
-            pfBuffer[n] = sample;
-            // pfBuffer[n] = oAccess.getValue(xyz);
-            n++;
+            for (int x = 0; x < resolution; x++)
+            {
+                samplePoint = Vec3d(xMin + (double)x * xDiv, yMin + (double)y * yDiv, fZSlice / oVoxelSize.m_fVoxelSizeMM);
+                auto fieldValue = sampler.wsSample(samplePoint);
+                pfBuffer[n] = fieldValue;
+                n++;
+            }
         }
+
+        //for (xyz.y()=oBBox.min().y(); xyz.y()<=oBBox.max().y(); xyz.y()++)
+        //for (xyz.x()=oBBox.min().x(); xyz.x()<=oBBox.max().x(); xyz.x()++)
+        //{
+        //    auto transformedPoint = transform.indexToWorld(xyz);
+        //    auto samplingPoint = Vec3d(transformedPoint.x(), transformedPoint.y(), fZSlice / oVoxelSize.m_fVoxelSizeMM);
+        //    auto sample = sampler.wsSample(samplingPoint);
+        //    pfBuffer[n] = sample;
+        //    // pfBuffer[n] = oAccess.getValue(xyz);
+        //    n++;
+        //}
     }
     
     FloatGrid::Ptr roVdbGrid() const 	{return m_roGrid;}
