@@ -37,7 +37,6 @@
 #include "PicoGK.h"
 
 #include "PicoGKLibraryMgr.h"
-//#include "PicoGKGLViewer.h"
 
 using namespace PicoGK;
 
@@ -51,9 +50,9 @@ void SafeCopyInfoString(const std::string s, char psz[PKINFOSTRINGLEN])
     psz[PKINFOSTRINGLEN-1] = 0;
 }
 
-PICOGK_API void Library_Init(float fVoxelSizeMM, bool bTriangulateMeshes, float fMeshAdaptivity)
+PICOGK_API void Library_Init(float fVoxelSizeMM, float fMeshAdaptivity)
 {
-    Library::oLib().InitLibrary(fVoxelSizeMM, bTriangulateMeshes, fMeshAdaptivity);
+    Library::oLib().InitLibrary(fVoxelSizeMM, fMeshAdaptivity);
 }
 
 PICOGK_API void Library_GetName(char psz[PKINFOSTRINGLEN])
@@ -309,6 +308,15 @@ PICOGK_API void Voxels_Destroy(PKVOXELS hThis)
     Library::oLib().VoxelsDestroy(proThis);
 }
 
+PICOGK_API void Voxels_Transform(PKVOXELS hThis,
+                                 PKMatrix4x4 mTransform)
+{
+    Voxels::Ptr* proThis = (Voxels::Ptr*)hThis;
+    assert(Library::oLib().bVoxelsIsValid(proThis));
+
+    (*proThis)->Transform(mTransform);
+}
+
 PICOGK_API void Voxels_BoolAdd( PKVOXELS hThis,
                                 PKVOXELS hOther)
 {
@@ -533,7 +541,7 @@ PICOGK_API void Voxels_GetVoxelDimensions(  PKVOXELS hThis,
 }
 
 PICOGK_API void Voxels_GetSlice(    PKVOXELS    hThis,
-                                    int32_t     nZSlice,
+                                    float       fZSlice,
                                     float*      pfBuffer,
                                     float*      pfBackgroundValue)
 {
@@ -541,7 +549,7 @@ PICOGK_API void Voxels_GetSlice(    PKVOXELS    hThis,
     assert(Library::oLib().bVoxelsIsValid(proThis));
     
     *pfBackgroundValue = (*proThis)->fBackground();
-    return (*proThis)->GetSlice(nZSlice, pfBuffer);
+    return (*proThis)->GetSlice(fZSlice, pfBuffer, Library::oLib().fVoxelSizeMM());
 }
 
 //PICOGK_API PKVIEWER Viewer_hCreate( const char*             pszWindowTitle,
