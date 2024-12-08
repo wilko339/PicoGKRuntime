@@ -78,13 +78,13 @@ public:
     ScalarField()
     : Field()
     {
-        m_roGrid->setGridClass(GRID_FOG_VOLUME);
+        //m_roGrid->setGridClass(GRID_FOG_VOLUME);
     }
     
     ScalarField(const ScalarField& roSource)
     : Field(roSource)
     {
-        m_roGrid->setGridClass(GRID_FOG_VOLUME);
+        //m_roGrid->setGridClass(GRID_FOG_VOLUME);
     }
     
     ScalarField(const Voxels& oSource)
@@ -95,7 +95,7 @@ public:
     ScalarField(const FloatGrid::Ptr roSource)
     : Field(roSource)
     {
-        m_roGrid->setGridClass(GRID_FOG_VOLUME);
+        //m_roGrid->setGridClass(GRID_FOG_VOLUME);
     }
     
     void SetValue(  Vector3     vecPos,
@@ -109,6 +109,34 @@ public:
                                 oVoxelSize.iToVoxels(vecPos.Z));
         
         oAccess.setValue(xyz, fValue);
+    }
+
+    void EvaluateFunction(const BBox3& oBBox,
+        PKPFnfSdf pfn,
+        VoxelSize oVoxelSize)
+    {
+        openvdb::FloatTree& tree = m_roGrid->tree();
+        auto oAccess = m_roGrid->getAccessor();
+
+        Coord xyzMin = oVoxelSize.xyzToVoxels(oBBox.vecMin);
+        Coord xyzMax = oVoxelSize.xyzToVoxels(oBBox.vecMax);
+
+        // Increase the bounding box by the voxel distance of the background value
+        // so we don't cut off the narrow band
+        // int32_t iAdd = (int32_t)(m_roGrid->background() + 0.5f);
+
+        for (int32_t x = xyzMin.X; x <= xyzMax.X; x++)
+        for (int32_t y = xyzMin.Y; y <= xyzMax.Y; y++)
+        for (int32_t z = xyzMin.Z; z <= xyzMax.Z; z++)
+        {
+            Vector3 vecSample = oVoxelSize.vecToMM(Coord(x, y, z));
+            openvdb::Coord xyz(x, y, z);
+
+            float fValue = (oVoxelSize.fToVoxels((*pfn)(&vecSample)));
+
+            tree.setValue(xyz, fValue);
+            // SetValue(vecSample, oVoxelSize.m_fVoxelSizeMM, fValue);
+        }
     }
     
     bool bGetValue( Vector3 vecPos,
@@ -154,20 +182,56 @@ public:
         *pnZSize    = oBBox.extents().z();
     }
     
-    void GetSlice( int32_t nZSlice,
-                   float* pfBuffer)
+    //void GetSlice( int32_t nZSlice,
+    //               float* pfBuffer)
+    //{
+    //    CoordBBox oBBox = m_roGrid->evalActiveVoxelBoundingBox();
+    //    openvdb::Coord xyz(0, 0, nZSlice + oBBox.min().z());
+    //    
+    //    auto oAccess = m_roGrid->getConstAccessor();
+    //    
+    //    int32_t n=0;
+    //    for (xyz.y()=oBBox.min().y(); xyz.y()<=oBBox.max().y(); xyz.y()++)
+    //    for (xyz.x()=oBBox.min().x(); xyz.x()<=oBBox.max().x(); xyz.x()++)
+    //    {
+    //        pfBuffer[n] = oAccess.getValue(xyz);
+    //        n++;
+    //    }
+    //}
+
+    void GetSlice(float fZSlice,
+        int resolution,
+        float* pfBuffer,
+        VoxelSize oVoxelSize)
     {
         CoordBBox oBBox = m_roGrid->evalActiveVoxelBoundingBox();
-        openvdb::Coord xyz(0, 0, nZSlice + oBBox.min().z());
-        
-        auto oAccess = m_roGrid->getConstAccessor();
-        
-        int32_t n=0;
-        for (xyz.y()=oBBox.min().y(); xyz.y()<=oBBox.max().y(); xyz.y()++)
-        for (xyz.x()=oBBox.min().x(); xyz.x()<=oBBox.max().x(); xyz.x()++)
+        openvdb::Coord xyz(0, 0, 0);
+
+        auto transform = m_roGrid->transform();
+
+        openvdb::tools::GridSampler<FloatGrid, openvdb::tools::BoxSampler> sampler(*m_roGrid);
+
+        auto worldMin = transform.indexToWorld(oBBox.min());
+        auto worldMax = transform.indexToWorld(oBBox.max());
+
+        int32_t n = 0;
+
+        double xMin = worldMin.x();
+        double yMin = worldMin.y();
+
+        auto divs = (worldMax - worldMin) / ((double)resolution - 1);
+
+        Vec3d samplePoint;
+
+        for (int y = 0; y < resolution; y++)
         {
-            pfBuffer[n] = oAccess.getValue(xyz);
-            n++;
+            for (int x = 0; x < resolution; x++)
+            {
+                samplePoint = Vec3d(xMin + (double)x * divs.x(), yMin + (double)y * divs.y(), fZSlice / oVoxelSize.m_fVoxelSizeMM);
+                auto fieldValue = sampler.wsSample(samplePoint);
+                pfBuffer[n] = fieldValue;
+                n++;
+            }
         }
     }
     
