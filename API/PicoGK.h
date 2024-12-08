@@ -403,7 +403,8 @@ PICOGK_API void             ScalarField_GetVoxelDimensions( PKSCALARFIELD       
                                                             int32_t*            pnZSize);
 
 PICOGK_API void             ScalarField_GetSlice(           PKSCALARFIELD       hThis,
-                                                            int32_t             nZSlice,
+                                                            float               nZSlice,
+                                                            int                 resolution,
                                                             float*              pfBuffer);
 
 PICOGK_API void             ScalarField_TraverseActive(     PKSCALARFIELD       hThis,
