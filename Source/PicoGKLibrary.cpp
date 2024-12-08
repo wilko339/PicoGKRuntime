@@ -37,6 +37,7 @@
 #include "PicoGK.h"
 
 #include "PicoGKLibraryMgr.h"
+#include "PicoGKVdbField.h"
 
 using namespace PicoGK;
 
@@ -360,6 +361,18 @@ PICOGK_API void Voxels_Offset(  PKVOXELS hThis,
     assert(Library::oLib().bVoxelsIsValid(proThis));
     
     (*proThis)->Offset(fDist, Library::oLib().fVoxelSizeMM());
+}
+
+PICOGK_API void Voxels_OffsetField( PKVOXELS hThis, 
+                                    PKSCALARFIELD hOffset)
+{
+    Voxels::Ptr* proThis = (Voxels::Ptr*) hThis;
+    assert(Library::oLib().bVoxelsIsValid(proThis));
+
+    ScalarField::Ptr* proOffset = (ScalarField::Ptr*)hOffset;
+    assert(Library::oLib().bScalarFieldIsValid(proOffset));
+
+    (*proThis)->OffsetField((*proOffset)->roVdbGrid(), Library::oLib().fVoxelSizeMM());
 }
 
 PICOGK_API void Voxels_DoubleOffset(    PKVOXELS hThis,
@@ -731,6 +744,16 @@ PICOGK_API void ScalarField_SetValue(   PKSCALARFIELD       hThis,
                             fValue);
 }
 
+PICOGK_API void ScalarField_EvaluateFunction(   PKVOXELS hThis,
+                                                const PKBBox3* poBBox,
+                                                PKPFnfSdf pfnSDF)
+{
+    ScalarField::Ptr* proThis = (ScalarField::Ptr*)hThis;
+    assert(Library::oLib().bScalarFieldIsValid(proThis));
+
+    return (*proThis)->EvaluateFunction(*poBBox, pfnSDF, Library::oLib().fVoxelSizeMM());
+}
+
 PICOGK_API bool ScalarField_bGetValue(  PKSCALARFIELD       hThis,
                                         const PKVector3*    pvecPosition,
                                         float*              pfValue)
@@ -772,13 +795,24 @@ PICOGK_API void ScalarField_GetVoxelDimensions( PKSCALARFIELD hThis,
                                             pnZSize);
 }
 
-PICOGK_API void ScalarField_GetSlice(   PKSCALARFIELD   hThis,
-                                        int32_t     nZSlice,
-                                        float*      pfBuffer)
+//PICOGK_API void ScalarField_GetSlice(   PKSCALARFIELD   hThis,
+//                                        int32_t     nZSlice,
+//                                        float*      pfBuffer)
+//{
+//    ScalarField::Ptr* proThis = (ScalarField::Ptr*) hThis;
+//    assert(Library::oLib().bScalarFieldIsValid(proThis));
+//    return (*proThis)->GetSlice(nZSlice, pfBuffer);
+//}
+
+PICOGK_API void ScalarField_GetSlice(   PKSCALARFIELD hThis,
+                                        float fZSlice,
+                                        int resolution,
+                                        float* pfBuffer)
 {
-    ScalarField::Ptr* proThis = (ScalarField::Ptr*) hThis;
+    ScalarField::Ptr* proThis = (ScalarField::Ptr*)hThis;
     assert(Library::oLib().bScalarFieldIsValid(proThis));
-    return (*proThis)->GetSlice(nZSlice, pfBuffer);
+
+    return(*proThis)->GetSlice(fZSlice, resolution, pfBuffer, Library::oLib().fVoxelSizeMM());
 }
 
 PICOGK_API void ScalarField_TraverseActive( PKSCALARFIELD hThis,
