@@ -45,6 +45,9 @@
 #include <openvdb/tools/RayIntersector.h>
 #include <openvdb/tools/GridTransformer.h>
 #include <openvdb/tools/FastSweeping.h>
+#include <openvdb/tools/Composite.h>
+
+#include <omp.h>
 
 #include "PicoGKMesh.h"
 
@@ -198,6 +201,59 @@ public:
         oFilter.offset(fSizeVx);
         m_roGrid->tree().prune();
     }
+
+    void OffsetField(FloatGrid::Ptr roOffsetGrid, VoxelSize oVoxelSize)
+    {
+        // Find the max offset amount
+        float fMaxOffset = 0.0f;
+        for (auto iter = roOffsetGrid->beginValueOn(); iter; ++iter)
+        {
+            float fVoxelValue = iter.getValue();
+            fMaxOffset = std::max(fMaxOffset, std::abs(fVoxelValue));
+        }
+
+        // Makes sure we have a signed distance field
+        RebuildLevelSet(oVoxelSize, fMaxOffset + 0.5f);
+
+        auto sourceAccessor = m_roGrid->getAccessor();
+        auto offsetAccessor = roOffsetGrid->getAccessor();
+
+        FloatGrid::Ptr roResult = FloatGrid::create(m_roGrid->background());
+        auto resultAccessor = roResult->getAccessor();
+
+        CoordBBox oBBox = m_roGrid->evalActiveVoxelBoundingBox();
+
+        int32_t iAdd = (int32_t)(m_roGrid->background() + 0.5f);
+        oBBox.expand(iAdd);
+
+        for (auto z = oBBox.min().z(); z <= oBBox.max().z(); z++)
+        for (auto y = oBBox.min().y(); y <= oBBox.max().y(); y++)
+        for (auto x = oBBox.min().x(); x <= oBBox.max().x(); x++)
+        {
+            openvdb::Coord xyz(x, y, z);
+
+            float fSourceValue = sourceAccessor.getValue(xyz);
+            float fOffsetValue = offsetAccessor.getValue(xyz);
+
+            float fNewValue = fSourceValue - fOffsetValue;
+
+            fNewValue = std::clamp(fNewValue, -m_roGrid->background(), m_roGrid->background());
+
+            if (std::abs(fNewValue) >= m_roGrid->background())
+            {
+                resultAccessor.setValueOff(xyz);
+            }
+            else
+            {
+                resultAccessor.setValueOn(xyz, fNewValue);
+            }
+        }
+
+        roResult = tools::levelSetRebuild(*roResult);
+
+        m_roGrid = roResult;
+        m_roGrid->tree().prune();
+    }
     
     void DoubleOffset(  float fSize1,
                         float fSize2,
@@ -229,6 +285,18 @@ public:
         // offset inwards again. Now we are back where we started
         // but have lost a lot of detail = smooth
         oFilter.offset(-fSizeVx);
+        m_roGrid->tree().prune();
+    }
+
+    void RebuildLevelSet(VoxelSize oVoxelSize)
+    {
+        m_roGrid = tools::levelSetRebuild(*m_roGrid);
+        m_roGrid->tree().prune();
+    }
+    
+    void RebuildLevelSet(VoxelSize oVoxelSize, float halfWidth)
+    {
+        m_roGrid = tools::levelSetRebuild(*m_roGrid, 0.0f, halfWidth);
         m_roGrid->tree().prune();
     }
     
@@ -318,57 +386,124 @@ public:
         }
     }
     
-    void RenderImplicit(    const BBox3& oBBox,
-                            PKPFnfSdf pfn,
-                            VoxelSize oVoxelSize)
+    //void RenderImplicit(    const BBox3& oBBox,
+    //                        PKPFnfSdf pfn,
+    //                        VoxelSize oVoxelSize)
+    //{
+    //    auto oAccess = m_roGrid->getAccessor();
+    //    
+    //    Coord xyzMin = oVoxelSize.xyzToVoxels(oBBox.vecMin);
+    //    Coord xyzMax = oVoxelSize.xyzToVoxels(oBBox.vecMax);
+    //    
+    //    // Increase the bounding box by the voxel distance of the background value
+    //    // so we don't cut off the narrow band
+    //    int32_t iAdd = (int32_t) (m_roGrid->background() + 0.5f);
+    //    
+    //    for(int32_t x = xyzMin.X - iAdd; x <= xyzMax.X + iAdd; x++)
+    //    for(int32_t y = xyzMin.Y - iAdd; y <= xyzMax.Y + iAdd; y++)
+    //    for(int32_t z = xyzMin.Z - iAdd; z <= xyzMax.Z + iAdd; z++)
+    //    {
+    //        Vector3 vecSample = oVoxelSize.vecToMM(Coord(x,y,z));
+    //        openvdb::Coord xyz(x,y,z);
+    //        
+    //        float fValue = std::min(    oVoxelSize.fToVoxels((*pfn)(&vecSample)),
+    //                                    oAccess.getValue(xyz));
+    //        
+    //        SetSdValue(&oAccess, xyz, m_roGrid->background(), fValue);
+    //    }
+    //    RebuildLevelSet(oVoxelSize);
+    //}
+    
+    //void IntersectImplicit( PKPFnfSdf pfn,
+    //                        VoxelSize oVoxelSize)
+    //{
+    //    Voxels oVox(fBackground());
+    //    
+    //    CoordBBox oBBox = m_roGrid->evalActiveVoxelBoundingBox();
+    //    
+    //    BBox3 oBBoxMM;
+    //    oBBoxMM.vecMin.X = oVoxelSize.fToMM(oBBox.min().x());
+    //    oBBoxMM.vecMin.Y = oVoxelSize.fToMM(oBBox.min().y());
+    //    oBBoxMM.vecMin.Z = oVoxelSize.fToMM(oBBox.min().z());
+    //    
+    //    oBBoxMM.vecMax.X = oVoxelSize.fToMM(oBBox.max().x());
+    //    oBBoxMM.vecMax.Y = oVoxelSize.fToMM(oBBox.max().y());
+    //    oBBoxMM.vecMax.Z = oVoxelSize.fToMM(oBBox.max().z());
+    //    
+    //    oVox.RenderImplicit(oBBoxMM, pfn, oVoxelSize);
+    //    
+    //    // Swap out the grids, so we keep using the "nice"
+    //    // implict grid, and use our grid just as the mask
+    //    // Not sure if this is really necessary, but the
+    //    // implicit grid is "perfect"
+    //    m_roGrid.swap(oVox.m_roGrid);
+    //    
+    //    BoolIntersect(oVox);
+    //}
+
+    void RenderImplicit(const BBox3& oBBox,
+        PKPFnfSdf pfn,
+        VoxelSize oVoxelSize)
     {
         auto oAccess = m_roGrid->getAccessor();
-        
+
         Coord xyzMin = oVoxelSize.xyzToVoxels(oBBox.vecMin);
         Coord xyzMax = oVoxelSize.xyzToVoxels(oBBox.vecMax);
-        
+
         // Increase the bounding box by the voxel distance of the background value
-        // so we don't cut off the narrow band
-        int32_t iAdd = (int32_t) (m_roGrid->background() + 0.5f);
-        
-        for(int32_t x = xyzMin.X - iAdd; x <= xyzMax.X + iAdd; x++)
-        for(int32_t y = xyzMin.Y - iAdd; y <= xyzMax.Y + iAdd; y++)
-        for(int32_t z = xyzMin.Z - iAdd; z <= xyzMax.Z + iAdd; z++)
+        int32_t iAdd = (int32_t)(m_roGrid->background() + 0.5f);
+
+        // Calculate dimensions for parallelization
+        int32_t xSize = xyzMax.X - xyzMin.X + 2 * iAdd + 1;
+        int32_t ySize = xyzMax.Y - xyzMin.Y + 2 * iAdd + 1;
+        int32_t zSize = xyzMax.Z - xyzMin.Z + 2 * iAdd + 1;
+
+        // Create a thread-local accessor for each thread
+#pragma omp parallel
         {
-            Vector3 vecSample = oVoxelSize.vecToMM(Coord(x,y,z));
-            openvdb::Coord xyz(x,y,z);
-            
-            float fValue = std::min(    oVoxelSize.fToVoxels((*pfn)(&vecSample)),
-                                        oAccess.getValue(xyz));
-            
-            SetSdValue(&oAccess, xyz, m_roGrid->background(), fValue);
+            // Create a thread-local accessor
+            auto localAccess = m_roGrid->getAccessor();
+
+            // Parallelize the outer loop for better chunk size
+#pragma omp for schedule(dynamic) collapse(2)
+            for (int32_t x = xyzMin.X - iAdd; x <= xyzMax.X + iAdd; x++) {
+                for (int32_t y = xyzMin.Y - iAdd; y <= xyzMax.Y + iAdd; y++) {
+                    for (int32_t z = xyzMin.Z - iAdd; z <= xyzMax.Z + iAdd; z++) {
+                        Vector3 vecSample = oVoxelSize.vecToMM(Coord(x, y, z));
+                        openvdb::Coord xyz(x, y, z);
+
+                        float fValue = std::min(oVoxelSize.fToVoxels((*pfn)(&vecSample)),
+                            localAccess.getValue(xyz));
+
+                        SetSdValue(&localAccess, xyz, m_roGrid->background(), fValue);
+                    }
+                }
+            }
         }
+
+        RebuildLevelSet(oVoxelSize);
     }
-    
-    void IntersectImplicit( PKPFnfSdf pfn,
-                            VoxelSize oVoxelSize)
+
+    void IntersectImplicit(PKPFnfSdf pfn,
+        VoxelSize oVoxelSize)
     {
         Voxels oVox(fBackground());
-        
+
         CoordBBox oBBox = m_roGrid->evalActiveVoxelBoundingBox();
-        
+
         BBox3 oBBoxMM;
         oBBoxMM.vecMin.X = oVoxelSize.fToMM(oBBox.min().x());
         oBBoxMM.vecMin.Y = oVoxelSize.fToMM(oBBox.min().y());
         oBBoxMM.vecMin.Z = oVoxelSize.fToMM(oBBox.min().z());
-        
+
         oBBoxMM.vecMax.X = oVoxelSize.fToMM(oBBox.max().x());
         oBBoxMM.vecMax.Y = oVoxelSize.fToMM(oBBox.max().y());
         oBBoxMM.vecMax.Z = oVoxelSize.fToMM(oBBox.max().z());
-        
+
+        // Call the parallel version of RenderImplicit
         oVox.RenderImplicit(oBBoxMM, pfn, oVoxelSize);
-        
-        // Swap out the grids, so we keep using the "nice"
-        // implict grid, and use our grid just as the mask
-        // Not sure if this is really necessary, but the
-        // implicit grid is "perfect"
+
         m_roGrid.swap(oVox.m_roGrid);
-        
         BoolIntersect(oVox);
     }
 
